@@ -1,0 +1,10 @@
+--dbgprint: true
+@build/generic, @run/node
+
+[@build/generic]
+command: tsc
+arguments: --pretty -p tsconfig.json --allowJS
+
+[@run/node]
+mainFile: undefined.js
+envFile: .env

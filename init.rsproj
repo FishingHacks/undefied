@@ -1,0 +1,12 @@
+--dbgprint: true
+@install/node, @git/gitignore
+
+[@install/node]
+packages: @types/node
+language: typescript
+packageManager: pnpm
+mainFile: undefined.ts
+
+[@git/gitignore]
+language: ts
+additional: 
