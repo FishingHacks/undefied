@@ -1,0 +1,18 @@
+dup swap drop
+1 - swap drop
+
+"Argument Printer v1.0.0 by FishingHacks\n" 1 1 syscall3
+
+while
+swap
+"Argument: " 1 1 syscall3
+
+0 1 while drop over over + @ 0 != if 1 + 1 else 0 end end
+drop
+
+swap 1 1 syscall3
+"\n" 1 1 syscall3
+1 -
+end
+
+# cstrlen: 0 1 while drop over over + @ 0 != if 1 + 1 else 0 end end drop

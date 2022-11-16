@@ -2,7 +2,7 @@
 @install/node, @git/gitignore
 
 [@install/node]
-packages: @types/node
+packages: @types/node, chalk@4.1.2
 language: typescript
 packageManager: pnpm
 mainFile: undefined.ts

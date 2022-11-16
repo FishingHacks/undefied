@@ -1,4 +1,4 @@
---dbgprint: true
+# --dbgprint: true
 @build/generic, @run/node
 
 [@build/generic]
