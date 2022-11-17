@@ -2,6 +2,6 @@ include "std"
 
 11 10 + print
 
-"Exit\n" 1 1 syscall3
+"Exit\n" puts
 
-argv cast(int) print
+2 nthArg cstrlen puts "\n" puts

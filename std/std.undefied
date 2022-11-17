@@ -1,20 +1,21 @@
-fn cstrlen ptr -- int ptr in 0 1 while drop over over + @ 0 != if 1 + 1 else 0 end end drop end
+fn cstrlen ptr -- int ptr in 0 1 while drop over over swap cast(int) + cast(ptr) @ 0 != if 1 + 1 else 0 end end drop swap end
 fn puts ptr int in 1 1 syscall3 end
-fn / int -- int in /% drop end
-fn % int -- int in /% swap drop end
+fn / int int -- int in /% drop end
+fn % int int -- int in /% swap drop end
 fn eputs ptr int in 2 1 syscall3 end
 
-fn NULL in 0 end
-fn write in 1 syscall3 end
-fn exit in 3 syscall1 end
-fn 2dup in over over end
-fn 2drop in drop drop end
-fn div in /% drop end
-fn mod in /% swap drop end
-fn nthArg in 8 * argv + @64 end
+fn NULL -- int in 0 end
+fn write ptr int int in 1 syscall3 end
+fn exit int in 3 syscall1 end
+fn div int int -- int in /% drop end
+fn mod int int -- int in /% swap drop end
+fn nthArg int -- ptr in 8 * argv cast(int) + cast(ptr) @64 cast(ptr) end
+
+fn true  -- bool in 1 cast(bool) end
+fn false -- bool in 0 cast(bool) end
 
 fn cstrToStr ptr -- ptr int in cstrlen swap end
-fn lnot int -- int in if 0 else 1 end end
+fn lnot bool -- bool in if false else true end end
 
 
 # ptr ptr
@@ -22,7 +23,7 @@ fn cstreq ptr ptr -- int in
 
 
 here puts ": TODO: Implement cstreq" puts
-
+drop drop 0
 end
 fn puteol in "\n" 1 1 syscall3 end
 

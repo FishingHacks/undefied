@@ -2,7 +2,7 @@ import { open, readFile } from "fs/promises";
 import { join } from "path";
 import chalk from "chalk";
 import { format } from "util";
-import assert from "assert";
+import assert, { deepEqual } from "assert";
 import { spawnSync } from "child_process";
 import { cp, existsSync } from "fs";
 
@@ -549,17 +549,19 @@ function humanType(type: Type) {
   else return "unknown type with id " + type;
 }
 
-function $typecheckProgram(
-  program: Program,
-  stack: { loc: Loc; type: Type }[]
-) {
+type TypeCheckStack = {
+  loc: Loc;
+  type: Type;
+}[];
+
+function $typecheckProgram(program: Program, stack: TypeCheckStack) {
   const functionBodies: {
     fip: number;
     body: Operation[];
     loc: Loc;
     endLoc: Loc;
   }[] = [];
-  const stackSnapshot: Type[][] = [];
+  const stackSnapshots: TypeCheckStack[] = [];
 
   let ip = 0;
   while (ip < program.ops.length) {
@@ -569,7 +571,7 @@ function $typecheckProgram(
         fip: ip + 1,
         body: program.ops.slice(ip + 2, op.operation - 1),
         loc: op.location,
-        endLoc: program.ops[op.operation].location,
+        endLoc: program.ops[op.operation - 1].location,
       });
       ip = op.operation - 1;
     } else if (op.type === OpType.PrepFn)
@@ -883,8 +885,78 @@ function $typecheckProgram(
           assert(false, "unreachable");
       }
     } else if (op.type === OpType.Keyword) {
-      assert(false, "Not implemented");
-    }
+      switch (op.operation) {
+        case Keyword.Memory:
+          stack.push({ type: Type.Ptr, loc: op.location });
+          break;
+        case Keyword.In:
+          assert(false, "unreachable");
+          break;
+        case Keyword.Splitter:
+          assert(false, "unreachable");
+          break;
+        case Keyword.Fn:
+          assert(false, "unreachable");
+          break;
+        case Keyword.If:
+          var v = stack.pop();
+          if (!v)
+            compilerError(
+              op.location,
+              "Stack does not contain enough values for this operation"
+            );
+          else if (v.type !== Type.Bool)
+            compilerError(
+              op.location,
+              "Expected Bool, found " + humanType(v.type)
+            );
+          else {
+            stackSnapshots.push([...stack]);
+            break;
+          }
+        case Keyword.Else:
+          var snapshot = stackSnapshots.pop();
+          if (!snapshot)
+            compilerError(op.location, "Did not follow an if-block");
+          else {
+            stackSnapshots.push([...stack]);
+            stack = snapshot;
+          }
+          break;
+        case Keyword.End:
+          var snapshot = stackSnapshots.pop();
+          if (!snapshot)
+            compilerError(op.location, "Did not follow an if or while-block");
+          else {
+            const snapshottypes = snapshot.map((el) => el.type);
+            const stacktypes = stack.map((el) => el.type);
+            if (snapshottypes.length !== stacktypes.length)
+              compilerError(
+                op.location,
+                "The stack after running the block has to be equal no matter the values. Expected Stack: " +
+                  getTypes(snapshottypes) +
+                  ", Found: " +
+                  getTypes(stacktypes)
+              );
+            if (
+              snapshottypes.map((el, i) => el === stacktypes[i]).includes(false)
+            )
+              compilerError(
+                op.location,
+                "The stack after running the block has to be equal no matter the values. Expected Stack: " +
+                  getTypes(snapshottypes) +
+                  ", Found: " +
+                  getTypes(stacktypes)
+              );
+          }
+          break;
+        case Keyword.While:
+          stackSnapshots.push([...stack]);
+          break;
+        default:
+          assert(false, "Not implemented");
+      }
+    } else assert(false, "unreachable");
 
     ip++;
   }
@@ -915,10 +987,7 @@ function typecheckProgram(program: Program) {
           (illegalDef.type === OpType.PushMem ? "Memory" : "a Function") +
           " inside a Function is not allowed"
       );
-    const fnStack: {
-      loc: Loc;
-      type: Type;
-    }[] = [];
+    const fnStack: TypeCheckStack = [];
     for (const inType of contract.ins) {
       fnStack.push({ loc: fn.loc, type: inType });
     }
