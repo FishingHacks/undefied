@@ -1,0 +1,5 @@
+include "std"
+
+0 nthArg cstrToStr puts puteol
+
+cstreq

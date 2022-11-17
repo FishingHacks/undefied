@@ -1,0 +1,33 @@
+fn cstrlen ptr -- int ptr in 0 1 while drop over over + @ 0 != if 1 + 1 else 0 end end drop end
+fn puts ptr int in 1 1 syscall3 end
+fn / int -- int in /% drop end
+fn % int -- int in /% swap drop end
+fn eputs ptr int in 2 1 syscall3 end
+
+fn NULL in 0 end
+fn write in 1 syscall3 end
+fn exit in 3 syscall1 end
+fn 2dup in over over end
+fn 2drop in drop drop end
+fn div in /% drop end
+fn mod in /% swap drop end
+fn nthArg in 8 * argv + @64 end
+
+fn cstrToStr ptr -- ptr int in cstrlen swap end
+fn lnot int -- int in if 0 else 1 end end
+
+
+# ptr ptr
+fn cstreq ptr ptr -- int in
+
+
+here puts ": TODO: Implement cstreq" puts
+
+end
+fn puteol in "\n" 1 1 syscall3 end
+
+# proposed:
+# fn name inargs -- outargs in body end
+# fn name in body end
+# fn name inargs in body end
+# fn name -- outargs in body end

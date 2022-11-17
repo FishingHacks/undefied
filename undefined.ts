@@ -4,12 +4,23 @@ import chalk from "chalk";
 import { format } from "util";
 import assert from "assert";
 import { spawnSync } from "child_process";
+import { cp, existsSync } from "fs";
+
+const INCLUDE_DIRECTORY = join(process.argv[1], "../std");
 
 type Loc = [string, number, number];
 
 interface Program {
   ops: Operation[];
   memorysize: number;
+
+  contracts: Record<number, { ins: Type[]; outs: Type[] }>;
+}
+
+enum Type {
+  Int,
+  Bool,
+  Ptr,
 }
 
 enum Intrinsic {
@@ -33,8 +44,13 @@ enum Intrinsic {
   Store,
   Load64,
   Store64,
-  PushPtr,
   NotEqual,
+  Here,
+  Argv,
+  StackInfo,
+  CastPtr,
+  CastBool,
+  CastInt,
 }
 
 enum Keyword {
@@ -43,6 +59,9 @@ enum Keyword {
   Else,
   While,
   Memory,
+  Fn,
+  In,
+  Splitter,
 }
 
 enum OpType {
@@ -51,6 +70,11 @@ enum OpType {
   PushInt,
   PushString,
   PushCString,
+  PushMem,
+  SkipFn,
+  PrepFn,
+  Ret,
+  Call,
 }
 
 type Operation =
@@ -59,7 +83,6 @@ type Operation =
       location: Loc;
       token: Token;
       operation: Intrinsic;
-      start?: number;
     }
   | {
       type: OpType.PushCString | OpType.PushString;
@@ -68,7 +91,7 @@ type Operation =
       operation: string;
     }
   | {
-      type: OpType.PushInt;
+      type: OpType.PushInt | OpType.PushMem | OpType.Call | OpType.Ret;
       location: Loc;
       token: Token;
       operation: number;
@@ -79,6 +102,12 @@ type Operation =
       reference?: number;
       token: Token;
       operation: Keyword;
+    }
+  | {
+      type: OpType.PrepFn | OpType.SkipFn;
+      location: Loc;
+      token: Token;
+      operation: number;
     };
 
 type Token =
@@ -172,7 +201,8 @@ async function generateTokens(file: string) {
         if (type === TokenType.None) {
           type = TokenType.Word;
           location = [file, l + 1, c + 1];
-        }
+        } else if (type === TokenType.Integer) type = TokenType.Word;
+
         value += character;
       }
     }
@@ -204,9 +234,10 @@ async function generateTokens(file: string) {
   return tokens;
 }
 
-function parseProgram(tokens: Token[]): Program {
-  let memories: Record<string, number> = {};
-  const program: Program = { ops: [], memorysize: 0 };
+async function parseProgram(tokens: Token[]): Promise<Program> {
+  const memories: Record<string, number> = {};
+  const functions: Record<string, number> = {};
+  const program: Program = { ops: [], memorysize: 0, contracts: {} };
 
   let ip = 0;
   while (ip < tokens.length) {
@@ -241,6 +272,16 @@ function parseProgram(tokens: Token[]): Program {
           token.loc,
           "Expected Word but got " + humanTokenType(name.type)
         );
+      if (
+        KeywordNames[name.value as keyof typeof KeywordNames] !== undefined ||
+        memories[name.value] !== undefined ||
+        functions[name.value] !== undefined ||
+        IntrinsicNames[name.value as keyof typeof IntrinsicNames] !== undefined
+      )
+        compilerError(
+          token.loc,
+          "Redefinition of memory, function, Intrinsic or Keyword is not allowed"
+        );
       ip++;
       const size = tokens[ip];
       if (!size) compilerError(name.loc, "Expected Integer but got nothing");
@@ -263,21 +304,122 @@ function parseProgram(tokens: Token[]): Program {
           end.loc,
           "Expected `end` Keyword, but got `" + end.value + "`"
         );
-      if (memories[name.value] !== undefined) compilerError(token.loc, "Redefinition of memory is not allowed");
-      if (IntrinsicNames[name.value as keyof typeof IntrinsicNames] !== undefined) compilerError(token.loc, "Redefinition of Intrinsic");
-      if (KeywordNames[name.value as keyof typeof KeywordNames] !== undefined) compilerError(token.loc, "Redefinition of Keyword");
-      memories[name.value] = program.memorysize;
       if (isNaN(Number(size.value))) assert(false, "unreachable");
       program.memorysize += Number(size.value);
+    } else if (token.type === TokenType.Word && token.value === "fn") {
+      ip++;
+      const name = tokens[ip];
+      if (!name)
+        compilerError(token.loc, "Error: Expected Word but found nothing");
+      if (name.type !== TokenType.Word)
+        compilerError(
+          token.loc,
+          "Error: Expected Word but found " + humanTokenType(name.type)
+        );
+
+      if (
+        KeywordNames[name.value as keyof typeof KeywordNames] !== undefined ||
+        memories[name.value] !== undefined ||
+        functions[name.value] !== undefined ||
+        IntrinsicNames[name.value as keyof typeof IntrinsicNames] !== undefined
+      )
+        compilerError(
+          token.loc,
+          "Redefinition of memory, function, Intrinsic or Keyword is not allowed"
+        );
+
+      const ins: Type[] = [];
+      const outs: Type[] = [];
+      let isAtIns = true;
+
+      ip++;
+      while (ip < tokens.length) {
+        const typeorsplit = tokens[ip];
+        if (typeorsplit.type !== TokenType.Word)
+          compilerError(
+            typeorsplit.loc,
+            "Expected Word, but found " + humanTokenType(typeorsplit.type)
+          );
+        if (
+          typeorsplit.value !== "--" &&
+          typeorsplit.value !== "in" &&
+          typeNames[typeorsplit.value as keyof typeof typeNames] === undefined
+        )
+          compilerError(
+            token.loc,
+            "Expected a Type, -- or in, found " + typeorsplit.value
+          );
+
+        if (typeorsplit.value === "in") break;
+        else if (typeorsplit.value === "--" && !isAtIns)
+          compilerError(
+            token.loc,
+            "Found -- more than once in the function contract"
+          );
+        else if (typeorsplit.value === "--") isAtIns = false;
+        else if (
+          typeNames[typeorsplit.value as keyof typeof typeNames] !== undefined
+        )
+          (isAtIns ? ins : outs).push(
+            typeNames[typeorsplit.value as keyof typeof typeNames]
+          );
+        else assert(false, "Unreachable");
+
+        ip++;
+      }
+      if (tokens[ip].value !== "in")
+        compilerError(token.loc, "Expected in but found " + tokens[ip].value);
+
+      program.ops.push({
+        location: token.loc,
+        token,
+        operation: 0,
+        type: OpType.SkipFn,
+      });
+
+      program.contracts[program.ops.length] = { ins, outs };
+      functions[name.value] = program.ops.length;
+      program.ops.push({
+        location: token.loc,
+        token,
+        operation: 0,
+        type: OpType.PrepFn,
+      });
+    } else if (token.type === TokenType.Word && token.value === "include") {
+      ip++;
+      const path = tokens[ip];
+      if (!path) compilerError(token.loc, "Expected String but found nothing");
+      if (path.type !== TokenType.String)
+        compilerError(
+          path.loc,
+          "Expected String but found " + humanTokenType(path.type)
+        );
+
+      const file = join(
+        INCLUDE_DIRECTORY,
+        path.value +
+          (path.value.toString().endsWith(".undefied") ? "" : ".undefied")
+      );
+      if (!existsSync(file)) compilerError(path.loc, "File does not exist");
+      console.log("Including", file);
+      const generatedTokens = await generateTokens(file);
+      generatedTokens.push(...tokens.slice(ip + 1));
+      tokens = generatedTokens;
+      ip = -1;
     } else {
       if (
         IntrinsicNames[token.value as keyof typeof IntrinsicNames] ===
           undefined &&
         KeywordNames[token.value as keyof typeof KeywordNames] === undefined &&
-        memories[token.value] === undefined
-      )
-        throw new Error('Word "' + token.value + '" is not an Intrinsic, Keyword or memory name');
-      else if (
+        memories[token.value] === undefined &&
+        functions[token.value] === undefined
+      ) {
+        throw new Error(
+          'Word "' +
+            token.value +
+            '" is not an Intrinsic, Keyword, function or memory name'
+        );
+      } else if (
         IntrinsicNames[token.value as keyof typeof IntrinsicNames] !== undefined
       )
         program.ops.push({
@@ -286,14 +428,29 @@ function parseProgram(tokens: Token[]): Program {
           operation: IntrinsicNames[token.value as keyof typeof IntrinsicNames],
           type: OpType.Intrinsic,
         });
-      else if (KeywordNames[token.value as keyof typeof KeywordNames] !== undefined)
+      else if (
+        KeywordNames[token.value as keyof typeof KeywordNames] !== undefined
+      )
         program.ops.push({
           location: token.loc,
           token,
           operation: KeywordNames[token.value as keyof typeof KeywordNames],
           type: OpType.Keyword,
         });
-      else if (memories[token.value] !== undefined) program.ops.push({location: token.loc, token, type: OpType.Intrinsic, operation: Intrinsic.PushPtr, start: memories[token.value]});
+      else if (memories[token.value] !== undefined)
+        program.ops.push({
+          location: token.loc,
+          token,
+          type: OpType.PushMem,
+          operation: memories[token.value],
+        });
+      else if (functions[token.value] !== undefined)
+        program.ops.push({
+          location: token.loc,
+          token,
+          type: OpType.Call,
+          operation: functions[token.value],
+        });
       else {
         console.log(token);
         compilerError(token.loc, "Unknown error");
@@ -345,6 +502,16 @@ function crossReferenceProgram(program: Program): Program {
               "End expected `if` block, found nothing"
             );
           _op = program.ops[Number(_ip)];
+          if (_op.type === OpType.SkipFn) {
+            _op.operation = Number(ip) + 1;
+            program.ops[ip] = {
+              type: OpType.Ret,
+              location: op.location,
+              token: op.token,
+              operation: 0,
+            };
+            break;
+          }
           if (_op.type !== OpType.Keyword) break;
           if (
             ![Keyword.Else, Keyword.If, Keyword.While].includes(_op.operation)
@@ -365,6 +532,8 @@ function crossReferenceProgram(program: Program): Program {
           stack.push(ip);
           break;
       }
+    } else if (op.type === OpType.SkipFn) {
+      stack.push(ip);
     }
   }
 
@@ -372,6 +541,422 @@ function crossReferenceProgram(program: Program): Program {
 
   return program;
 }
+
+function humanType(type: Type) {
+  if (type === Type.Bool) return "bool";
+  else if (type === Type.Int) return "int";
+  else if (type === Type.Ptr) return "ptr";
+  else return "unknown type with id " + type;
+}
+
+function $typecheckProgram(
+  program: Program,
+  stack: { loc: Loc; type: Type }[]
+) {
+  const functionBodies: {
+    fip: number;
+    body: Operation[];
+    loc: Loc;
+    endLoc: Loc;
+  }[] = [];
+  const stackSnapshot: Type[][] = [];
+
+  let ip = 0;
+  while (ip < program.ops.length) {
+    const op = program.ops[ip];
+    if (op.type === OpType.SkipFn) {
+      functionBodies.push({
+        fip: ip + 1,
+        body: program.ops.slice(ip + 2, op.operation - 1),
+        loc: op.location,
+        endLoc: program.ops[op.operation].location,
+      });
+      ip = op.operation - 1;
+    } else if (op.type === OpType.PrepFn)
+      assert(false, "Reached prepfn.. This should never happend");
+    else if (op.type === OpType.Ret) assert(false, "This should never happen");
+    else if (op.type === OpType.Call) {
+      const contract = program.contracts[op.operation];
+      if (!contract) compilerError(op.location, "No contract found");
+      if (stack.length < contract.ins.length)
+        compilerError(
+          op.location,
+          "The stack has not enough elements (" +
+            stack.length +
+            " elements on the stack, " +
+            contract.ins.length +
+            " elements needed)"
+        );
+      for (const t of contract.ins) {
+        const stackType = stack.pop();
+        if (stackType === undefined)
+          compilerError(op.location, "The stack has not enough elements"); // should never happen
+        if (t !== stackType?.type)
+          compilerError(
+            op.location,
+            "Type does not match, " +
+              humanType(t) +
+              " required, " +
+              humanType(stackType?.type || -1) +
+              " supplied"
+          );
+      }
+      for (const t of contract.outs) {
+        stack.push({ loc: op.location, type: t });
+      }
+    } else if (op.type === OpType.PushCString)
+      stack.push({ loc: op.location, type: Type.Ptr });
+    else if (op.type === OpType.PushInt)
+      stack.push({ loc: op.location, type: Type.Int });
+    else if (op.type === OpType.PushMem)
+      stack.push({ loc: op.location, type: Type.Ptr });
+    else if (op.type === OpType.PushString)
+      stack.push(
+        { loc: op.location, type: Type.Int },
+        { loc: op.location, type: Type.Ptr }
+      );
+    else if (op.type === OpType.Intrinsic) {
+      switch (op.operation) {
+        case Intrinsic.Plus:
+        case Intrinsic.Minus:
+        case Intrinsic.Multiply:
+          var [n1, n2] = [stack.pop(), stack.pop()];
+          if (!n1 || !n2)
+            compilerError(op.location, "Not enough numbers for this operation");
+          if (n1?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "Left-hand operand is not an int, found " +
+                humanType(n1?.type || -1)
+            );
+          if (n2?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "Right-hand operand is not an int, found " +
+                humanType(n2?.type || -1)
+            );
+          stack.push({ loc: op.location, type: Type.Int });
+          break;
+        case Intrinsic.Argv:
+          stack.push({ loc: op.location, type: Type.Ptr });
+          break;
+        case Intrinsic.DivMod:
+          var [n1, n2] = [stack.pop(), stack.pop()];
+          if (!n1 || !n2)
+            compilerError(op.location, "Not enough numbers for this operation");
+          if (n1?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "Left-hand operand is not an int, found " +
+                humanType(n1?.type || -1)
+            );
+          if (n2?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "Right-hand operand is not an int, found " +
+                humanType(n2?.type || -1)
+            );
+          stack.push(
+            { loc: op.location, type: Type.Int },
+            { loc: op.location, type: Type.Int }
+          );
+          break;
+        case Intrinsic.Drop:
+          if (!stack.pop())
+            compilerError(
+              op.location,
+              "Can't drop a value, stack does not have any"
+            );
+          break;
+        case Intrinsic.Here:
+          stack.push(
+            { loc: op.location, type: Type.Int },
+            { loc: op.location, type: Type.Ptr }
+          );
+          break;
+        case Intrinsic.Dup:
+          if (stack.length < 1)
+            compilerError(
+              op.location,
+              "Can't dup a value, stack does not have any"
+            );
+          const v = stack.pop();
+          if (!!v) stack.push(v, v);
+          break;
+        case Intrinsic.Equal:
+        case Intrinsic.NotEqual:
+          var [v1, v2] = [stack.pop(), stack.pop()];
+          if (!v1 || !v2)
+            compilerError(op.location, "Stack does not have enough values");
+          else if (v1.type !== v2.type)
+            compilerError(
+              op.location,
+              "The type of the values doesn't match (" +
+                [humanType(v1.type), humanType(v2.type)]
+            );
+          else stack.push({ type: Type.Bool, loc: op.location });
+          break;
+        case Intrinsic.Load:
+        case Intrinsic.Load64:
+          var ptr = stack.pop();
+          if (!ptr)
+            compilerError(op.location, "Stack does not contain a pointer");
+          else if (ptr.type !== Type.Ptr)
+            compilerError(op.location, "Stack does not contain a pointer");
+          else stack.push({ type: Type.Int, loc: op.location });
+          break;
+        case Intrinsic.Over:
+          var [v1, v2] = [stack.pop(), stack.pop()];
+          if (!v1 || !v2)
+            compilerError(
+              op.location,
+              "Stack does not contain enough values for this operation"
+            );
+          else stack.push(v2, v1, v2);
+          break;
+        case Intrinsic.Print:
+          var int = stack.pop();
+          if (!int)
+            compilerError(
+              op.location,
+              "Stack does not have enough values for this operation"
+            );
+          else if (int.type !== Type.Int)
+            compilerError(
+              op.location,
+              "Integer expected, found " + humanType(int.type)
+            );
+          break;
+        case Intrinsic.Store:
+        case Intrinsic.Store64:
+          var [ptr, int] = [stack.pop(), stack.pop()];
+          if (!ptr || !int)
+            compilerError(op.location, "Stack does not have enough values");
+          else if (int.type !== Type.Int || ptr.type !== Type.Ptr)
+            compilerError(
+              op.location,
+              "Expected int ptr, found " +
+                humanType(int.type) +
+                " " +
+                humanType(ptr.type)
+            );
+          break;
+        case Intrinsic.Swap:
+          var [v1, v2] = [stack.pop(), stack.pop()];
+          if (!v1 || !v2)
+            compilerError(
+              op.location,
+              "Stack does not have enough values for this operation"
+            );
+          else stack.push(v1, v2);
+          break;
+        case Intrinsic.Syscall1:
+          if (stack.length < 2)
+            compilerError(
+              op.location,
+              "Stack does not contain enough values for this operation"
+            );
+          if (stack.pop()?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "The top element of the stack is not an Int"
+            );
+          stack.pop();
+          break;
+        case Intrinsic.Syscall2:
+          if (stack.length < 3)
+            compilerError(
+              op.location,
+              "Stack does not contain enough values for this operation"
+            );
+          if (stack.pop()?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "The top element of the stack is not an Int"
+            );
+          stack.pop();
+          stack.pop();
+          break;
+        case Intrinsic.Syscall3:
+          if (stack.length < 4)
+            compilerError(
+              op.location,
+              "Stack does not contain enough values for this operation"
+            );
+          if (stack.pop()?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "The top element of the stack is not an Int"
+            );
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          break;
+        case Intrinsic.Syscall4:
+          if (stack.length < 5)
+            compilerError(
+              op.location,
+              "Stack does not contain enough values for this operation"
+            );
+          if (stack.pop()?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "The top element of the stack is not an Int"
+            );
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          break;
+        case Intrinsic.Syscall5:
+          if (stack.length < 6)
+            compilerError(
+              op.location,
+              "Stack does not contain enough values for this operation"
+            );
+          if (stack.pop()?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "The top element of the stack is not an Int"
+            );
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          break;
+        case Intrinsic.Syscall6:
+          if (stack.length < 7)
+            compilerError(
+              op.location,
+              "Stack does not contain enough values for this operation"
+            );
+          if (stack.pop()?.type !== Type.Int)
+            compilerError(
+              op.location,
+              "The top element of the stack is not an Int"
+            );
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          stack.pop();
+          break;
+        case Intrinsic.StackInfo:
+          for (const value of stack.reverse())
+            console.log(
+              "From %s:%d:%d: %s",
+              ...value.loc,
+              humanType(value.type)
+            );
+          process.exit(1);
+          break;
+        case Intrinsic.CastBool:
+          var val = stack.pop();
+          if (!val)
+            compilerError(
+              op.location,
+              "Stack does not have enough values for this operation"
+            );
+          else stack.push({ loc: val.loc, type: Type.Bool });
+          break;
+        case Intrinsic.CastInt:
+          var val = stack.pop();
+          if (!val)
+            compilerError(
+              op.location,
+              "Stack does not have enough values for this operation"
+            );
+          else stack.push({ loc: val.loc, type: Type.Int });
+          break;
+        case Intrinsic.CastPtr:
+          var val = stack.pop();
+          if (!val)
+            compilerError(
+              op.location,
+              "Stack does not have enough values for this operation"
+            );
+          else stack.push({ loc: val.loc, type: Type.Ptr });
+          break;
+        default:
+          assert(false, "unreachable");
+      }
+    } else if (op.type === OpType.Keyword) {
+      assert(false, "Not implemented");
+    }
+
+    ip++;
+  }
+  return { stack, functionBodies };
+}
+
+function typecheckProgram(program: Program) {
+  const { stack, functionBodies } = $typecheckProgram(program, []);
+  if (stack.length > 0)
+    compilerError(
+      program.ops[program.ops.length - 1].location,
+      "Unhandled data found"
+    );
+  for (const fn of functionBodies) {
+    const contract = program.contracts[fn.fip];
+    if (!contract)
+      compilerError(fn.loc, "Function does not have a contract attached");
+    const illegalDef = fn.body.find(
+      (el) =>
+        el.type === OpType.PrepFn ||
+        el.type === OpType.SkipFn ||
+        el.type === OpType.PushMem
+    );
+    if (!!illegalDef)
+      compilerError(
+        illegalDef.location,
+        "Defining " +
+          (illegalDef.type === OpType.PushMem ? "Memory" : "a Function") +
+          " inside a Function is not allowed"
+      );
+    const fnStack: {
+      loc: Loc;
+      type: Type;
+    }[] = [];
+    for (const inType of contract.ins) {
+      fnStack.push({ loc: fn.loc, type: inType });
+    }
+    const { functionBodies, stack: fnReturnStack } = $typecheckProgram(
+      { contracts: program.contracts, memorysize: 0, ops: fn.body },
+      fnStack
+    );
+    if (functionBodies.length > 0)
+      compilerError(fn.loc, "Function definitions in function-body");
+    if (fnReturnStack.length !== contract.outs.length)
+      compilerError(
+        fn.endLoc,
+        "Returnstack does not match the specified returnstack (expected: " +
+          getTypes(contract.outs) +
+          ", found: " +
+          getTypes(fnReturnStack.map((el) => el.type)) +
+          ")"
+      );
+    if (
+      fnReturnStack.map((el, i) => el.type === contract.outs[i]).includes(false)
+    )
+      compilerError(
+        fn.endLoc,
+        "Returnstack does not match the specified returnstack (expected: " +
+          getTypes(contract.outs) +
+          ", found: " +
+          getTypes(fnReturnStack.map((el) => el.type)) +
+          ")"
+      );
+  }
+}
+
+function getTypes(types: Type[]) {
+  if (types.length < 1) return chalk.gray(chalk.italic("<empty>"));
+  return types.map((el) => humanType(el)).join(" ");
+}
+
+const typeNames = { int: Type.Int, bool: Type.Bool, ptr: Type.Ptr };
 
 const IntrinsicNames = {
   "+": Intrinsic.Plus,
@@ -395,6 +980,12 @@ const IntrinsicNames = {
   "@64": Intrinsic.Load64,
   "!64": Intrinsic.Store64,
   "!=": Intrinsic.NotEqual,
+  here: Intrinsic.Here,
+  argv: Intrinsic.Argv,
+  "???": Intrinsic.StackInfo,
+  "cast(bool)": Intrinsic.CastBool,
+  "cast(int)": Intrinsic.CastInt,
+  "cast(ptr)": Intrinsic.CastPtr,
 };
 
 const KeywordNames = {
@@ -403,6 +994,9 @@ const KeywordNames = {
   else: Keyword.Else,
   while: Keyword.While,
   memory: Keyword.Memory,
+  fn: Keyword.Fn,
+  in: Keyword.In,
+  "--": Keyword.Splitter,
 };
 
 const opTypes = {
@@ -475,9 +1069,12 @@ async function compile(program: Program) {
   await write("global _start\n");
   await write("_start:\n");
   await write("    mov [args_ptr], rsp\n");
+  await write("    mov rax, ret_stack_end\n");
+  await write("    mov [ret_stack_rsp], rax\n");
 
   const req_addrs: number[] = [];
-  for (const op of program.ops) {
+  for (const ip in program.ops) {
+    const op = program.ops[ip];
     if (op.type === OpType.Keyword) {
       if ([Keyword.If, Keyword.Else, Keyword.While].includes(op.operation)) {
         if (!op.reference)
@@ -488,7 +1085,8 @@ async function compile(program: Program) {
         req_addrs.push(op.reference);
       } else if (op.operation === Keyword.End && op.reference)
         req_addrs.push(op.reference);
-    }
+    } else if (op.type === OpType.SkipFn) req_addrs.push(op.operation);
+    else if (op.type === OpType.Call) req_addrs.push(op.operation);
   }
 
   for (const ip in program.ops) {
@@ -509,6 +1107,34 @@ async function compile(program: Program) {
       await write("    ;; push int\n");
       await write("    mov rax, %d\n", op.operation);
       await write("    push rax\n");
+    } else if (op.type === OpType.PushMem) {
+      await write("    push mem\n");
+      await write("    pop rax\n");
+      await write("    add rax, %d\n", op.operation);
+      await write("    push rax\n");
+    } else if (op.type === OpType.SkipFn) {
+      if (!op.operation || isNaN(op.operation))
+        compilerError(op.location, "Error: No end-block found!");
+      await write("    ;; skip fn\n");
+      await write("    jmp addr_%d\n", op.operation);
+    } else if (op.type === OpType.PrepFn) {
+      await write("    ;; prep fn\n");
+      await write("    mov [ret_stack_rsp], rsp\n");
+      await write("    mov rsp, rax\n");
+    } else if (op.type === OpType.Call) {
+      if (!op.operation || isNaN(op.operation))
+        compilerError(op.location, "Error: Proc location wasn't found");
+      await write("    ;; call\n");
+      await write("    mov rax, rsp\n");
+      await write("    mov rsp, [ret_stack_rsp]\n");
+      await write("    call addr_%d\n", op.operation);
+      await write("    mov [ret_stack_rsp], rsp\n");
+      await write("    mov rsp, rax\n");
+    } else if (op.type === OpType.Ret) {
+      await write("    ;; end\n");
+      await write("    mov rax, rsp\n");
+      await write("    mov rsp, [ret_stack_rsp]\n");
+      await write("    ret\n");
     } else if (op.type === OpType.Intrinsic) {
       switch (op.operation) {
         case Intrinsic.Plus:
@@ -629,16 +1255,16 @@ async function compile(program: Program) {
           await write("    cmp rax, rbx\n");
           await write("    push rax\n");
           break;
-          case Intrinsic.NotEqual:
-            await write("    ;; !=\n")
-            await write("    mov rcx, 0\n")
-            await write("    mov rdx, 1\n")
-            await write("    pop rbx\n")
-            await write("    pop rax\n")
-            await write("    cmp rax, rbx\n")
-            await write("    cmovne rcx, rdx\n")
-            await write("    push rcx\n")
-            break;
+        case Intrinsic.NotEqual:
+          await write("    ;; !=\n");
+          await write("    mov rcx, 0\n");
+          await write("    mov rdx, 1\n");
+          await write("    pop rbx\n");
+          await write("    pop rax\n");
+          await write("    cmp rax, rbx\n");
+          await write("    cmovne rcx, rdx\n");
+          await write("    push rcx\n");
+          break;
         case Intrinsic.Load:
           await write("    ;; -- @ --\n");
           await write("    pop rax\n");
@@ -665,11 +1291,29 @@ async function compile(program: Program) {
           await write("    pop rbx\n");
           await write("    mov [rax], rbx\n");
           break;
-        case Intrinsic.PushPtr:
-          if (op.start === undefined) compilerError(op.location, "Error: No startptr defined. Probably an error in the parsing step");
-          await write("    push mem\n");
+        case Intrinsic.Here:
+          const loc = format("%s:%d:%d", ...op.location);
+          await write("    ;; here\n");
+          await write("    mov rax, %d\n", loc.length);
+          await write("    push rax\n");
+          await write("    push str_%d\n", strings.length);
+          strings.push(loc);
+          break;
+        case Intrinsic.Argv:
+          await write("    ;; -- argv --\n");
+          await write("    mov rax, [args_ptr]\n");
+          await write("    add rax, 8\n");
+          await write("    push rax\n");
+          break;
+        case Intrinsic.CastInt:
+        case Intrinsic.CastPtr:
+          break;
+        case Intrinsic.CastBool:
+          await write("    ;; cast(bool)\n");
           await write("    pop rax\n");
-          await write("    add rax, %d\n", op.start);
+          await write("    cmp rax, 0\n");
+          await write("    setne al\n");
+          await write("    movzx rax, al\n");
           await write("    push rax\n");
           break;
         default:
@@ -737,6 +1381,9 @@ async function compile(program: Program) {
     );
   }
   await write("segment .bss\n");
+  await write("    ret_stack_rsp: resq 1\n");
+  await write("    ret_stack: resb 4096\n");
+  await write("    ret_stack_end:\n");
   await write("    args_ptr: resq 1\n");
   await write("    mem: resb %d\n", program.memorysize);
 
@@ -747,9 +1394,11 @@ async function compile(program: Program) {
 }
 
 async function main(args: string[]) {
-  compile(
-    crossReferenceProgram(parseProgram(await generateTokens("test.undefied")))
+  const program = crossReferenceProgram(
+    await parseProgram(await generateTokens("test.undefied"))
   );
+  typecheckProgram(program);
+  compile(program);
 }
 
 function escapeStr(str: string): string {
