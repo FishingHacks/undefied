@@ -4,15 +4,17 @@ fn / int int -- int in /% drop end
 fn % int int -- int in /% swap drop end
 fn eputs ptr int in 2 1 syscall3 end
 
-fn NULL -- int in 0 end
+const null 0 end
+const nullptr 0 cast(ptr) end
 fn write ptr int int in 1 syscall3 end
 fn exit int in 3 syscall1 end
 fn div int int -- int in /% drop end
 fn mod int int -- int in /% swap drop end
 fn nthArg int -- ptr in 8 * argv cast(int) + cast(ptr) @64 cast(ptr) end
+fn ptr+ int ptr -- ptr in cast(int) + cast(ptr) end
 
-fn true  -- bool in 1 cast(bool) end
-fn false -- bool in 0 cast(bool) end
+const true  1 cast(bool) end
+const false 0 cast(bool) end
 
 fn cstrToStr ptr -- ptr int in cstrlen swap end
 fn lnot bool -- bool in if false else true end end
@@ -26,9 +28,5 @@ here puts ": TODO: Implement cstreq" puts
 drop drop 0
 end
 fn puteol in "\n" 1 1 syscall3 end
-
-# proposed:
-# fn name inargs -- outargs in body end
-# fn name in body end
-# fn name inargs in body end
-# fn name -- outargs in body end
+memory argc 8 end
+argv 0 8 - ptr+ @ argc !

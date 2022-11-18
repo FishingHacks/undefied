@@ -5,3 +5,12 @@ include "std"
 "Exit\n" puts
 
 2 nthArg cstrlen puts "\n" puts
+argc @ print
+
+
+4
+     dup 1 = if  "one"
+else dup 2 = if* "two"
+else dup 3 = if* "three"
+else             "unknown"
+end puts drop

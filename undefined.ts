@@ -62,6 +62,7 @@ enum Keyword {
   Fn,
   In,
   Splitter,
+  IfStar,
 }
 
 enum OpType {
@@ -75,6 +76,7 @@ enum OpType {
   PrepFn,
   Ret,
   Call,
+  Const,
 }
 
 type Operation =
@@ -108,6 +110,13 @@ type Operation =
       location: Loc;
       token: Token;
       operation: number;
+    }
+  | {
+      type: OpType.Const;
+      operation: number;
+      _type: Type;
+      token: Token;
+      location: Loc;
     };
 
 type Token =
@@ -238,6 +247,7 @@ async function parseProgram(tokens: Token[]): Promise<Program> {
   const memories: Record<string, number> = {};
   const functions: Record<string, number> = {};
   const program: Program = { ops: [], memorysize: 0, contracts: {} };
+  const constants: Record<string, { type: Type; value: number }> = {};
 
   let ip = 0;
   while (ip < tokens.length) {
@@ -305,6 +315,7 @@ async function parseProgram(tokens: Token[]): Promise<Program> {
           "Expected `end` Keyword, but got `" + end.value + "`"
         );
       if (isNaN(Number(size.value))) assert(false, "unreachable");
+      memories[name.value] = program.memorysize;
       program.memorysize += Number(size.value);
     } else if (token.type === TokenType.Word && token.value === "fn") {
       ip++;
@@ -321,11 +332,13 @@ async function parseProgram(tokens: Token[]): Promise<Program> {
         KeywordNames[name.value as keyof typeof KeywordNames] !== undefined ||
         memories[name.value] !== undefined ||
         functions[name.value] !== undefined ||
-        IntrinsicNames[name.value as keyof typeof IntrinsicNames] !== undefined
+        IntrinsicNames[name.value as keyof typeof IntrinsicNames] !==
+          undefined ||
+        constants[name.value] !== undefined
       )
         compilerError(
           token.loc,
-          "Redefinition of memory, function, Intrinsic or Keyword is not allowed"
+          "Redefinition of memory, function, constant, Intrinsic or Keyword is not allowed"
         );
 
       const ins: Type[] = [];
@@ -406,13 +419,149 @@ async function parseProgram(tokens: Token[]): Promise<Program> {
       generatedTokens.push(...tokens.slice(ip + 1));
       tokens = generatedTokens;
       ip = -1;
+    } else if (token.type === TokenType.Word && token.value === "const") {
+      ip++;
+      const name = tokens[ip];
+      if (!name) compilerError(token.loc, "Expected Word but found nothing");
+      else if (name.type !== TokenType.Word)
+        compilerError(
+          name.loc,
+          "Expected Word but found " + humanTokenType(name.type)
+        );
+      else {
+        if (
+          KeywordNames[name.value as keyof typeof KeywordNames] !== undefined ||
+          memories[name.value] !== undefined ||
+          functions[name.value] !== undefined ||
+          IntrinsicNames[name.value as keyof typeof IntrinsicNames] !==
+            undefined ||
+          constants[name.value] !== undefined
+        )
+          compilerError(
+            token.loc,
+            "Redefinition of memory, function, constant, Intrinsic or Keyword is not allowed"
+          );
+        const toks: Token[] = [];
+        ip++;
+        while (ip < tokens.length) {
+          const tok = tokens[ip];
+          if (tok.type === TokenType.Word && tok.value === "end") break;
+          else if (tok.type === TokenType.Integer) toks.push(tok);
+          else if (tok.type !== TokenType.Word)
+            compilerError(
+              tok.loc,
+              "Only numbers, constants, +, *, -, /, % and casting is allowed in constants"
+            );
+          else if (constants[tok.value] !== undefined)
+            toks.push({
+              loc: tok.loc,
+              type: TokenType.Integer,
+              value: constants[tok.value].value,
+            });
+          else if (
+            ![
+              "+",
+              "-",
+              "/",
+              "%",
+              "cast(ptr)",
+              "cast(bool)",
+              "cast(int)",
+            ].includes(tok.value)
+          )
+            compilerError(
+              tok.loc,
+              "Only numbers, +, *, -, /, % and casting is allowed in constants"
+            );
+          else toks.push(tok);
+          ip++;
+        }
+        if (tokens[ip].type !== TokenType.Word || tokens[ip].value !== "end")
+          compilerError(tokens[ip].loc, "Expected end but found nothing");
+        const simStack: number[] = [];
+        let type: Type = Type.Int;
+        for (const t of toks) {
+          if (t.type === TokenType.Integer) simStack.push(t.value);
+          else if (t.type === TokenType.Word) {
+            switch (t.value) {
+              case "+":
+                if (simStack.length < 2)
+                  compilerError(
+                    t.loc,
+                    "Simulationstack does not contain enough values for this operation"
+                  );
+                else
+                  simStack.push((simStack.pop() || 0) + (simStack.pop() || 0));
+                break;
+              case "-":
+                if (simStack.length < 2)
+                  compilerError(
+                    t.loc,
+                    "Simulationstack does not contain enough values for this operation"
+                  );
+                else
+                  simStack.push((simStack.pop() || 0) - (simStack.pop() || 0));
+                break;
+              case "*":
+                if (simStack.length < 2)
+                  compilerError(
+                    t.loc,
+                    "Simulationstack does not contain enough values for this operation"
+                  );
+                else
+                  simStack.push((simStack.pop() || 0) * (simStack.pop() || 0));
+                break;
+              case "/":
+                if (simStack.length < 2)
+                  compilerError(
+                    t.loc,
+                    "Simulationstack does not contain enough values for this operation"
+                  );
+                else
+                  simStack.push((simStack.pop() || 0) / (simStack.pop() || 0));
+                break;
+              case "%":
+                if (simStack.length < 2)
+                  compilerError(
+                    t.loc,
+                    "Simulationstack does not contain enough values for this operation"
+                  );
+                else
+                  simStack.push((simStack.pop() || 0) % (simStack.pop() || 0));
+                break;
+              case "cast(ptr)":
+                type = Type.Ptr;
+                break;
+              case "cast(bool)":
+                type = Type.Bool;
+                break;
+              case "cast(int)":
+                type = Type.Int;
+                break;
+              default:
+                assert(false, "unreachable");
+            }
+          } else assert(false, "unreachable");
+        }
+
+        if (simStack.length !== 1)
+          compilerError(
+            token.loc,
+            "Error: No or too many elements on the Simulation stack"
+          );
+        else {
+          if (type === Type.Bool) simStack[0] = simStack[0] === 0 ? 0 : 1;
+          constants[name.value] = { type, value: simStack[0] };
+        }
+      }
     } else {
       if (
         IntrinsicNames[token.value as keyof typeof IntrinsicNames] ===
           undefined &&
         KeywordNames[token.value as keyof typeof KeywordNames] === undefined &&
         memories[token.value] === undefined &&
-        functions[token.value] === undefined
+        functions[token.value] === undefined &&
+        constants[token.value] === undefined
       ) {
         throw new Error(
           'Word "' +
@@ -451,7 +600,15 @@ async function parseProgram(tokens: Token[]): Promise<Program> {
           type: OpType.Call,
           operation: functions[token.value],
         });
-      else {
+      else if (constants[token.value] !== undefined) {
+        program.ops.push({
+          _type: constants[token.value].type,
+          operation: constants[token.value].value,
+          location: token.loc,
+          token,
+          type: OpType.Const,
+        });
+      } else {
         console.log(token);
         compilerError(token.loc, "Unknown error");
       }
@@ -483,7 +640,7 @@ function crossReferenceProgram(program: Program): Program {
               "End expected `if` block, found nothing"
             );
           _op = program.ops[Number(_ip)];
-          if (_op.operation !== Keyword.If)
+          if (_op.operation !== Keyword.If && _op.operation !== Keyword.IfStar)
             compilerError(
               _op.location,
               "Expected `if` block, found `" + _op.token.value + "`"
@@ -491,6 +648,19 @@ function crossReferenceProgram(program: Program): Program {
           if (_op.type !== OpType.Keyword)
             compilerError(_op.location, "Expected keyword");
           else _op.reference = Number(ip) + 1;
+
+          if (_op.operation === Keyword.IfStar) {
+            const else_ip = stack.pop();
+            const ifstar_else_op = program.ops[Number(else_ip)];
+            if (
+              !ifstar_else_op ||
+              ifstar_else_op.type !== OpType.Keyword ||
+              ifstar_else_op.operation !== Keyword.Else
+            )
+              compilerError(_op.location, "if* needs to be prepended by else");
+            else ifstar_else_op.reference = Number(ip);
+          }
+
           stack.push(ip);
 
           break;
@@ -531,6 +701,20 @@ function crossReferenceProgram(program: Program): Program {
         case Keyword.While:
           stack.push(ip);
           break;
+        case Keyword.IfStar:
+          const else_ip = stack.pop();
+          _op = program.ops[Number(else_ip)];
+          if (
+            !else_ip ||
+            !_op ||
+            _op.type !== OpType.Keyword ||
+            _op.operation !== Keyword.Else
+          )
+            compilerError(op.location, "if* can only come after else");
+          else {
+            stack.push(else_ip);
+            stack.push(ip);
+          }
       }
     } else if (op.type === OpType.SkipFn) {
       stack.push(ip);
@@ -566,7 +750,9 @@ function $typecheckProgram(program: Program, stack: TypeCheckStack) {
   let ip = 0;
   while (ip < program.ops.length) {
     const op = program.ops[ip];
-    if (op.type === OpType.SkipFn) {
+    if (op.type === OpType.Const) {
+      stack.push({ loc: op.location, type: op._type });
+    } else if (op.type === OpType.SkipFn) {
       functionBodies.push({
         fip: ip + 1,
         body: program.ops.slice(ip + 2, op.operation - 1),
@@ -599,7 +785,7 @@ function $typecheckProgram(program: Program, stack: TypeCheckStack) {
             "Type does not match, " +
               humanType(t) +
               " required, " +
-              humanType(stackType?.type || -1) +
+              humanType(stackType?.type === undefined ? -1 : stackType.type) +
               " supplied"
           );
       }
@@ -953,6 +1139,19 @@ function $typecheckProgram(program: Program, stack: TypeCheckStack) {
         case Keyword.While:
           stackSnapshots.push([...stack]);
           break;
+        case Keyword.IfStar:
+          var bool = stack.pop();
+          if (!bool)
+            compilerError(op.location, "Stack does not contain enough values");
+          else if (bool.type !== Type.Bool)
+            compilerError(
+              op.location,
+              "Expected bool, found " + humanType(bool.type)
+            );
+          else {
+            stackSnapshots.push([...stack]);
+          }
+          break;
         default:
           assert(false, "Not implemented");
       }
@@ -1066,6 +1265,7 @@ const KeywordNames = {
   fn: Keyword.Fn,
   in: Keyword.In,
   "--": Keyword.Splitter,
+  "if*": Keyword.IfStar,
 };
 
 const opTypes = {
@@ -1145,7 +1345,11 @@ async function compile(program: Program) {
   for (const ip in program.ops) {
     const op = program.ops[ip];
     if (op.type === OpType.Keyword) {
-      if ([Keyword.If, Keyword.Else, Keyword.While].includes(op.operation)) {
+      if (
+        [Keyword.If, Keyword.Else, Keyword.While, Keyword.IfStar].includes(
+          op.operation
+        )
+      ) {
         if (!op.reference)
           return compilerError(
             op.location,
@@ -1180,6 +1384,18 @@ async function compile(program: Program) {
       await write("    push mem\n");
       await write("    pop rax\n");
       await write("    add rax, %d\n", op.operation);
+      await write("    push rax\n");
+    } else if (op.type === OpType.Const) {
+      if (op._type === Type.Bool && ![1, 0].includes(op.operation))
+        compilerError(
+          op.location,
+          format(
+            "The operation of a bool-const is not a 0 or 1 (found %d)",
+            op.operation
+          )
+        );
+      await write("    ;; push const\n");
+      await write("    mov rax, %d\n", op.operation);
       await write("    push rax\n");
     } else if (op.type === OpType.SkipFn) {
       if (!op.operation || isNaN(op.operation))
@@ -1322,17 +1538,18 @@ async function compile(program: Program) {
           await write("    pop rax\n");
           await write("    pop rbx\n");
           await write("    cmp rax, rbx\n");
+          await write("    sete al\n");
+          await write("    movzx rax, al\n");
           await write("    push rax\n");
           break;
         case Intrinsic.NotEqual:
-          await write("    ;; !=\n");
-          await write("    mov rcx, 0\n");
-          await write("    mov rdx, 1\n");
-          await write("    pop rbx\n");
+          await write("    ;; =\n");
           await write("    pop rax\n");
+          await write("    pop rbx\n");
           await write("    cmp rax, rbx\n");
-          await write("    cmovne rcx, rdx\n");
-          await write("    push rcx\n");
+          await write("    setne al\n");
+          await write("    movzx rax, al\n");
+          await write("    push rax\n");
           break;
         case Intrinsic.Load:
           await write("    ;; -- @ --\n");
@@ -1405,6 +1622,7 @@ async function compile(program: Program) {
           await write("    jmp addr_%d\n", op.reference);
           break;
         case Keyword.If:
+        case Keyword.IfStar:
           if (!op.reference)
             return compilerError(
               op.location,
