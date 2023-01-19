@@ -520,7 +520,7 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                     else if (tok.type !== TokenType.Word)
                         compilerError(
                             tok.loc,
-                            'Only numbers, constants, +, *, -, /, % and casting is allowed in constants'
+                            'Only numbers, constants, +, *, -, /, %, casting or offsetting is allowed in constants'
                         );
                     else if (tok.value === 'offset') {
                         if (offset || reset)
