@@ -1,0 +1,8 @@
+include "std/ptr"
+
+fn nthArg int -- ptr in 8 * argv cast(int) + cast(ptr) @64 cast(ptr) end
+memory argc 8 end
+
+fn cli-args_setup in
+argv 0 8 - ptr+ @ argc !
+end

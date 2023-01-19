@@ -1,16 +1,38 @@
 include "std"
+include "binaryparser"
+include "hexparser"
 
-11 10 + print
+fn text int -- Str in
+       dup 0 = if  "Zero" return
+  else dup 1 = if* "One" return
+  else drop "unknown" return
+  end
+end
 
-"Exit\n" puts
+fn main in
+  11 10 + print
+  
+  "Exit\n" puts
+  
+  2 nthArg cstrToStr puts "\n" puts
+  argc @ print
+  
+  
+  4
+       dup 1 = if  "one"
+  else dup 2 = if* "two"
+  else dup 3 = if* "three"
+  else             "unknown"
+  end puts drop
+  
+  "10" parseBinVal print
+  "1001" parseBinVal print
+  "11" parseBinVal print
+  
+  "f" parseHexVal print
+  "ff" parseHexVal print
+  "ffff" parseHexVal print
 
-2 nthArg cstrlen puts "\n" puts
-argc @ print
 
-
-4
-     dup 1 = if  "one"
-else dup 2 = if* "two"
-else dup 3 = if* "three"
-else             "unknown"
-end puts drop
+  # "aaa"c "bbb"c cstreq printb
+end

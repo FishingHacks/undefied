@@ -1,0 +1,159 @@
+export type TypeCheckStack = {
+    loc: Loc;
+    type: Type;
+}[];
+
+export type Loc = [string, number, number];
+
+export interface Program {
+    ops: Operation[];
+    memorysize: number;
+    mainop: number | undefined;
+
+    contracts: Record<number, { ins: Type[]; outs: Type[]; used: boolean }>;
+}
+
+export enum Type {
+    Int,
+    Bool,
+    Ptr,
+}
+
+export enum Intrinsic {
+    Plus,
+    Minus,
+    Multiply,
+    LessThan,
+    LessThanEqual,
+    GreaterThan,
+    GreaterThanEqual,
+    DivMod,
+    Drop,
+    Dup,
+    Over,
+    Swap,
+    Print,
+    Syscall1,
+    Syscall2,
+    Syscall3,
+    Syscall4,
+    Syscall5,
+    Syscall6,
+    Equal,
+    Load,
+    Store,
+    Load64,
+    Store64,
+    NotEqual,
+    Here,
+    Argv,
+    StackInfo,
+    CastPtr,
+    CastBool,
+    CastInt,
+    Rot,
+    fakeDrop,
+    fakePtr,
+    fakeBool,
+    fakeInt,
+    Shl,
+    Shr,
+    Or,
+    And,
+    Not,
+    Xor,
+}
+
+export enum Keyword {
+    If,
+    End,
+    Else,
+    While,
+    Memory,
+    Fn,
+    In,
+    Splitter,
+    IfStar,
+    Struct,
+}
+
+export enum OpType {
+    Intrinsic,
+    Keyword,
+    PushInt,
+    PushString,
+    PushCString,
+    PushMem,
+    SkipFn,
+    PrepFn,
+    Ret,
+    Call,
+    Const,
+    PushAsm,
+}
+
+export type Operation =
+    | {
+          type: OpType.Intrinsic;
+          location: Loc;
+          token: Token;
+          operation: Intrinsic;
+      }
+    | {
+          type: OpType.PushCString | OpType.PushString;
+          location: Loc;
+          token: Token;
+          operation: string;
+      }
+    | {
+          type: OpType.PushInt | OpType.PushMem | OpType.Call | OpType.Ret;
+          location: Loc;
+          token: Token;
+          operation: number;
+      }
+    | {
+          type: OpType.Keyword;
+          location: Loc;
+          reference?: number;
+          token: Token;
+          operation: Keyword;
+      }
+    | {
+          type: OpType.PrepFn | OpType.SkipFn;
+          location: Loc;
+          token: Token;
+          operation: number;
+      }
+    | {
+          type: OpType.Const;
+          operation: number;
+          _type: Type;
+          token: Token;
+          location: Loc;
+      }
+    | {
+          type: OpType.PushAsm;
+          location: Loc;
+          token: Token;
+          operation: string;
+      };
+
+export type Token =
+    | {
+          loc: Loc;
+          value: number;
+          type: TokenType.Integer;
+      }
+    | {
+          loc: Loc;
+          value: string;
+          type: TokenType.CString | TokenType.String | TokenType.Word;
+      };
+export enum TokenType {
+    Word,
+    String,
+    CString,
+    Integer,
+    CharCode,
+    None,
+}

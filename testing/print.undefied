@@ -1,0 +1,5 @@
+fn main in
+  10 11 + print
+  105 print
+  0 10 - print
+end

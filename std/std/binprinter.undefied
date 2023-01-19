@@ -1,0 +1,19 @@
+include "std/io"
+
+memory pb_tmp_store 32 end
+
+fn printbin int in
+dup 1 < if drop return end
+31 swap
+while
+    dup 1 and '0' +
+    rot swap
+    dup swap rot pb_tmp_store cast(int) + cast(ptr) !
+    1 -
+    swap
+    1 shr
+    dup 1 <
+    if drop 0 end
+end  
+drop dup 32 swap - pb_tmp_store cast(int) rot rot + cast(ptr) puts
+end

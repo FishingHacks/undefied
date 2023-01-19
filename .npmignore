@@ -1,0 +1,8 @@
+*.ts
+testing/
+*.asm
+*.o
+*.undefied
+tsconfig.json
+tsconfig.tsbuildinfo
+specification.md

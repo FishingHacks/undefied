@@ -1,0 +1,9 @@
+struct Str in
+  pointer ptr
+  length int
+end
+struct CStr in
+  pointer ptr
+end
+fn cstrToStr CStr -- Str in 0 1 while drop over over swap cast(int) + cast(ptr) @ 0 != if 1 + 1 else 0 end end drop swap end
+fn cstrlen CStr -- int in cstrToStr drop end

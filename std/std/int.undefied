@@ -1,0 +1,6 @@
+include "values"
+
+fn / int int -- int in /% drop end
+fn % int int -- int in /% swap drop end
+fn div int int -- int in /% drop end
+fn mod int int -- int in /% swap drop end

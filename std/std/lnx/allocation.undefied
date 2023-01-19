@@ -1,0 +1,49 @@
+include "std/lnx/syscalls"
+include "values"
+
+memory a 10 11 + end
+
+const MAP_SHARED     0x01 end
+const MAP_PRIVATE    0x02 end
+const MAP_SHARED_VALIDATE 0x03 end
+const MAP_TYPE       0x0f end
+const MAP_FIXED      0x10 end
+const MAP_ANON       0x20 end
+const MAP_ANONYMOUS  0x20 end
+const MAP_NORESERVE  0x4000 end
+const MAP_GROWSDOWN  0x0100 end
+const MAP_DENYWRITE  0x0800 end
+const MAP_EXECUTABLE 0x1000 end
+const MAP_LOCKED     0x2000 end
+const MAP_POPULATE   0x8000 end
+const MAP_NONBLOCK   0x10000 end
+const MAP_STACK      0x20000 end
+const MAP_HUGETLB    0x40000 end
+const MAP_SYNC       0x80000 end
+const MAP_FIXED_NOREPLACE 0x100000 end
+const MAP_FILE       0 end
+
+const PROT_NONE      0 end
+const PROT_READ      1 end
+const PROT_WRITE     2 end
+const PROT_EXEC      4 end
+const PROT_GROWSDOWN 0x01000000 end
+const PROT_GROWSUP   0x02000000 end
+
+fn malloc
+  int
+  --
+  ptr
+in
+  dup 0 swap 0 1 - swap MAP_PRIVATE MAP_ANONYMOUS or swap PROT_READ PROT_WRITE or swap 1 + nullptr SC_mmap
+  dup cast(int) 0 1 - = if drop drop nullptr return end
+  swap over !
+  cast(int) 1 + cast(ptr)
+end
+
+fn free ptr in
+  dup nullptr = if drop return end
+  cast(int) 1 - cast(ptr)
+  dup @
+  swap SC_munmap drop
+end

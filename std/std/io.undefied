@@ -1,0 +1,7 @@
+include "std/lnx/io"
+
+memory pcc_mem 1 end
+fn printCharCode int in
+    pcc_mem !
+    1 pcc_mem puts
+end

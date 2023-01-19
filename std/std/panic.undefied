@@ -1,0 +1,6 @@
+include "std/io"
+include "std/lnx/syscalls"
+
+fn panic ptr int in
+"PANIC: " eputs eputs "\n" eputs 1 SC_exit
+end

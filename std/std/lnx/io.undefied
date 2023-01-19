@@ -1,0 +1,4 @@
+fn puts ptr int in 1 1 syscall3 drop end
+fn eputs ptr int in 2 1 syscall3 drop end
+fn write int ptr int in 1 syscall3 drop end
+fn puteol in "\n" 1 1 syscall3 drop end

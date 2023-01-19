@@ -1,0 +1,9 @@
+include "values"
+include "std/io"
+
+fn lnot bool -- bool in if false return end true end
+fn lor bool bool -- bool in if drop true return end end
+fn land bool bool -- bool in if return end drop false end
+fn lxor bool bool -- bool in over over land if drop drop false return end lor end
+fn printb bool in if "true" else "false" end puts end
+fn Boolean::toString bool -- ptr int in if "true" else "false" end end

@@ -1,0 +1,7 @@
+const true 1 cast(bool) end
+const false 0 cast(bool) end
+const null 0 end
+const nullptr 0 cast(ptr) end
+const sizeof(bool) 1 end
+const sizeof(int) 1 end
+const sizeof(ptr) 1 end

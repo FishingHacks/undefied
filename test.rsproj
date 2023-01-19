@@ -1,5 +1,0 @@
---dbgprint: true
-@test/js
-
-[@test/js]
-testfile: testing/test.js

@@ -1,0 +1,14 @@
+include "std/bool"
+
+fn main in
+  true if 1 print end
+  false if 0 print end
+
+  false if 1 print
+  else false if* 2 print
+  else true if* 3 print
+  else 4 print end
+
+  false if 10 print
+  else 9 print end
+end

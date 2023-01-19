@@ -1,0 +1,8 @@
+include "std/io"
+include "std/hexprinter"
+
+fn ptr+ int ptr -- ptr in swap cast(int) + cast(ptr) end
+fn +ptr ptr int -- ptr in cast(int) + cast(ptr) end
+fn ptr- int ptr -- ptr in swap cast(int) - cast(ptr) end
+fn -ptr ptr int -- ptr in cast(int) - cast(ptr) end
+fn printptr ptr in cast(int) printhex end

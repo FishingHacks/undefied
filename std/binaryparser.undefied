@@ -1,0 +1,19 @@
+fn parseBinDig int -- int in
+dup '0' = if drop 0
+else '1' = if* 1
+else 2 end
+end
+memory binstore 1 end
+
+fn parseBinVal ptr int -- int in
+0 binstore !
+swap
+while
+    swap
+    dup @ parseBinDig
+    binstore @ 2 * + binstore !
+    cast(int) 1 + cast(ptr)
+    swap
+1 - end drop drop
+binstore @
+end
