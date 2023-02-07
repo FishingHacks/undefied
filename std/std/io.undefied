@@ -1,7 +1,50 @@
 include "std/lnx/io"
+include "std/int"
+
+fn puts ptr int in FD_stdio fputs end
+fn eputs ptr int in FD_stdio fputs end
 
 memory pcc_mem 1 end
 fn printCharCode int in
     pcc_mem !
     1 pcc_mem puts
+end
+
+# uint printing
+fn fputu int int in
+    swap decToStr rot rot fputs
+end
+
+fn putu int in
+    FD_stdio fputu
+end
+
+fn eputu int in
+    FD_stderr fputu
+end
+
+# Hex printing
+fn fputx int int in
+    swap hexToStr rot rot fputs
+end
+
+fn putx int in
+    FD_stdio fputx
+end
+
+fn eputx int in
+    FD_stderr fputx
+end
+
+# Bin printing
+fn fputb int int in
+    swap binToStr rot rot fputs
+end
+
+fn putb int in
+    FD_stdio fputb
+end
+
+fn eputb int in
+    FD_stderr fputb
 end

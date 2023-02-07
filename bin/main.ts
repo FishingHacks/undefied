@@ -32,7 +32,7 @@ async function main(args: string[]) {
         if (options.includes('opt0') && options.includes('opt1'))
             error("Error: You can't use multiple optimization levels");
         const optimization =
-            options.find((el) => el.startsWith('opt')) || 'opt0';
+            options.find((el) => el.startsWith('opt')) || 'opt1';
 
         try {
             compileFile(

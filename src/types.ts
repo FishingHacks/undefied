@@ -50,6 +50,10 @@ export enum Intrinsic {
     Syscall6,
     Load,
     Store,
+    Load16,
+    Store16,
+    Load32,
+    Store32,
     Load64,
     Store64,
     Argv,
@@ -96,6 +100,7 @@ export enum OpType {
     Call,
     Const,
     PushAsm,
+    BindLet
 }
 
 export type Operation =

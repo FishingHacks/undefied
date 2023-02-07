@@ -5,9 +5,24 @@ import { format } from 'util';
 import { compilerError } from './errors';
 import { OpType, Keyword, Type, Intrinsic, Program } from './types';
 import { cmd_echoed, humanLocation } from './utils';
+import * as crypto from 'crypto';
+
+function generateStringName(str: string): string {
+    return crypto.randomUUID().replaceAll('-', '');
+}
 
 export async function compile(program: Program, filename?: string) {
-    const strings: string[] = [];
+    const strings: [string, string][] = [];
+
+    function getStringId(str: string) {
+        for (const [string, id] of strings) {
+            if (str === string) return id;
+        }
+        const id = generateStringName(str);
+        strings.push([str, id]);
+        return id;
+    }
+    
     filename ||= 'out';
 
     const out = await open(
@@ -135,12 +150,12 @@ export async function compile(program: Program, filename?: string) {
             await write('    ;; push str\n');
             await write('    mov rax, %d\n', op.operation.length);
             await write('    push rax\n');
-            await write('    push str_%d\n', strings.length);
-            strings.push(op.operation);
+            if (op.operation.length > 0)
+                await write('    push str_%s\n', getStringId(op.operation));
+           else await write('    push 0\n');
         } else if (op.type === OpType.PushCString) {
             await write('    ;; push cstr\n');
-            await write('    push str_%d\n', strings.length);
-            strings.push(op.operation + '\x00');
+            await write('    push str_%s\n', getStringId(op.operation + '\x00'));
         } else if (op.type === OpType.PushInt) {
             await write('    ;; push int\n');
             await write('    mov rax, %d\n', op.operation);
@@ -180,6 +195,14 @@ export async function compile(program: Program, filename?: string) {
             await write('    call addr_%d\n', op.operation);
             await write('    mov [ret_stack_rsp], rsp\n');
             await write('    mov rsp, rax\n');
+        } else if (op.type === OpType.PushAsm) {
+            await write(
+                (op.operation || '')
+                    .split('\n')
+                    .map((el) => '    ' + el)
+                    .join('\n')
+            );
+            if (op.operation && !op.operation.endsWith('\n')) await write('\n');
         } else if (op.type === OpType.Ret) {
             await write('    ;; end\n');
             await write('    mov rax, rsp\n');
@@ -335,6 +358,32 @@ export async function compile(program: Program, filename?: string) {
                     await write('    pop rbx\n');
                     await write('    mov [rax], bl\n');
                     break;
+                case Intrinsic.Load16:
+                    await write('    ;; -- @64 --\n');
+                    await write('    pop rax\n');
+                    await write('    xor rbx, rbx\n');
+                    await write('    mov bx, [rax]\n');
+                    await write('    push rbx\n');
+                    break;
+                case Intrinsic.Store16:
+                    await write('    ;; -- !64 --\n');
+                    await write('    pop rax\n');
+                    await write('    pop rbx\n');
+                    await write('    mov [rax], bx\n');
+                    break;
+                case Intrinsic.Load32:
+                    await write('    ;; -- @64 --\n');
+                    await write('    pop rax\n');
+                    await write('    xor rbx, rbx\n');
+                    await write('    mov ebx, [rax]\n');
+                    await write('    push rbx\n');
+                    break;
+                case Intrinsic.Store32:
+                    await write('    ;; -- !64 --\n');
+                    await write('    pop rax\n');
+                    await write('    pop rbx\n');
+                    await write('    mov [rax], ebx\n');
+                    break;
                 case Intrinsic.Load64:
                     await write('    ;; -- @64 --\n');
                     await write('    pop rax\n');
@@ -353,8 +402,7 @@ export async function compile(program: Program, filename?: string) {
                     await write('    ;; here\n');
                     await write('    mov rax, %d\n', loc.length);
                     await write('    push rax\n');
-                    await write('    push str_%d\n', strings.length);
-                    strings.push(loc);
+                    await write('    push str_%s\n', getStringId(loc));
                     break;
                 case Intrinsic.Argv:
                     await write('    ;; -- argv --\n');
@@ -422,9 +470,9 @@ export async function compile(program: Program, filename?: string) {
                     await write('    pop rax\n'); // 1.
                     await write('    pop rbx\n'); // 2.
                     await write('    pop rcx\n'); // 3.
-                    await write('    push rbx\n');
-                    await write('    push rcx\n');
-                    await write('    push rax\n');
+                    await write('    push rax\n'); // 1.
+                    await write('    push rcx\n'); // 3.
+                    await write('    push rbx\n'); // 2.
                     break;
                 case Intrinsic.Shr:
                     await write('    ;; -- shr --\n');
@@ -468,7 +516,10 @@ export async function compile(program: Program, filename?: string) {
                     await write('    push rax\n');
                     break;
                 default:
-                    assert(false, 'Unreachable ( ' + humanLocation(op.location) + ' )');
+                    assert(
+                        false,
+                        'Unreachable ( ' + humanLocation(op.location) + ' )'
+                    );
                     break;
             }
         } else if (op.type === OpType.Keyword) {
@@ -532,11 +583,11 @@ export async function compile(program: Program, filename?: string) {
     else await write('    pop rdi\n');
     await write('    syscall\n');
     await write('segment .data\n');
-    for (const s in strings) {
+    for (const [str, id] of strings) {
         await write(
-            'str_%d: db %s\n',
-            s,
-            Object.values(strings[s])
+            'str_%s: db %s\n',
+            id,
+            Object.values(str)
                 .map(
                     (el) => '0x' + el.charCodeAt(0).toString(16).substring(0, 2)
                 )

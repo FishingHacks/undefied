@@ -7,3 +7,5 @@ fn land bool bool -- bool in if return end drop false end
 fn lxor bool bool -- bool in over over land if drop drop false return end lor end
 fn printb bool in if "true" else "false" end puts end
 fn Boolean::toString bool -- ptr int in if "true" else "false" end end
+fn @bool ptr -- bool in @64 cast(bool) end
+fn !bool bool ptr in cast(int) swap !64 end

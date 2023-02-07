@@ -1,0 +1,70 @@
+include "values"
+include "std/bool"
+include "std/int"
+include "std/str"
+include "std/ptr"
+include "std/lnx/syscalls"
+include "std/lnx/socket"
+include "std/io"
+include "std/memory"
+
+const PORT 6969 end
+
+memory servaddr sizeof(sockaddr) end
+memory cliaddr sizeof(sockaddr) end
+memory clilen 4 end
+
+const CLIENT_BUF_CAP 1024 end
+memory client_buf CLIENT_BUF_CAP end
+memory request-count sizeof(int) end
+
+fn revfputs ptr int int in
+    rot rot fputs
+end
+
+# fd sz buf 
+fn handleReq ptr int int -- bool in
+puts
+"HTTP/1.1 200 OK\r\nServer: HTTPorth\r\nContent-Type: text/html\r\nConnection: Closed\r\n\r\n<h1>Hello from HTTPorth!</h1>\n" 0 send drop
+true
+end
+
+fn main in
+    0 SOCK_STREAM AF_INET socket
+    dup 0 < if drop "ERROR: Could not create TCP socket\n" eputs return end
+
+    "Successfully created socket: " puts
+    dup                             putu
+    "\n"                            puts
+
+    sizeof(sockaddr) 0 servaddr memset drop
+    AF_INET      servaddr sockaddr_in.sin_family ptr+ !16
+    INADDR_LOCAL servaddr sockaddr_in.sin_addr   ptr+ !32
+    PORT htons   servaddr sockaddr_in.sin_port   ptr+ !16
+
+    dup sizeof(sockaddr) swap servaddr swap bind 0 < if drop "ERROR: could not bind the socket\n" eputs return end
+
+    "Successfully bound the socket to port " puts
+    PORT                                     putu
+    "\n"                                     puts
+
+    1 over listen 0 < if drop "ERROR: Could not start listening\n" eputs return end
+    
+    "Successfully started listening\n" puts
+
+    1
+    while drop
+      clilen over cliaddr swap accept
+      dup 0 < if drop drop "ERROR: Server accept failed\n" eputs return end
+      "Client accepted the request with fd " puts
+
+      dup print
+      dup CLIENT_BUF_CAP swap client_buf swap read
+
+      over swap client_buf handleReq cast(int)
+      swap close drop
+    end drop
+
+
+    close drop
+end

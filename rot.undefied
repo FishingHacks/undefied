@@ -1,5 +1,0 @@
-include "std/bool"
-
-fn main in 
-  true printb
-end

@@ -1,0 +1,24 @@
+include "values"
+include "std/ptr"
+
+memory data sizeof(ptr) end
+memory byte sizeof(u64) end
+
+fn memset
+  ptr # data
+  int # size
+  int # byte
+  --
+  ptr # data
+in
+  cast(int) data !64
+  byte !64
+  data @ptr swap
+  while
+    byte @64 data @ptr !
+    data inc64
+    1 -
+    dup 1 < if drop 0 end 
+  end
+  drop  
+end

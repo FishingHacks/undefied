@@ -1,0 +1,91 @@
+include "values"
+include "std/lnx/syscalls"
+include "std/io"
+include "std/ptr"
+include "std/byteswap"
+
+const AF_UNIX 1 end
+const AF_LOCAL AF_UNIX end
+const AF_INET 2 end
+const AF_AX25 3 end
+const AF_IPX 4 end
+const AF_APPLETALK 5 end
+const AF_X25  9 end
+const AF_INET6 10 end
+const AF_DECnet 12 end
+const AF_KEY 15 end
+const AF_NETLINK 16 end
+const AF_PACKET 17 end
+const AF_RDS 21 end
+const AF_PPPOX 24 end
+const AF_LLC 26 end
+const AF_IB 27 end
+const AF_MPLS 28 end
+const AF_CAN 29 end
+const AF_TIPC 30 end
+const AF_BLUETOOTH 31 end
+const AF_ALG 38 end
+const AF_VSOCK 40 end
+const AF_KCM 41 end
+const AF_XDP 44 end
+
+const SOCK_STREAM 1 end
+const SOCK_DGRAM 2 end
+const SOCK_RAW 3 end
+const SOCK_RDM 4 end
+const SOCK_SEQPACKET 5 end
+const SOCK_PACKET 10 end
+const SOCK_NONBLOCK 04000 end
+const SOCK_CLOEXEC 02000000 end
+
+fn socket int int int -- int in
+    SYS_socket syscall3
+end
+
+const sizeof(sockaddr) 16 end
+const sockaddr_in.sin_family 0 end
+const sockaddr_in.sin_port 2 end
+const sockaddr_in.sin_addr 4 end
+const sizeof(sockaddr_in.sin_family) 2 end
+const sizeof(sockaddr_in.sin_port) 2 end
+const sizeof(sockaddr_in.sin_addr) 4 end
+
+const INADDR_LOCAL 16777343 end
+
+fn listen int int -- int in SYS_listen syscall2 end
+
+fn bind int ptr int -- int in SYS_bind syscall3 end
+
+fn accept int ptr ptr -- int in SYS_accept syscall3 end
+
+fn read int ptr int -- int in SYS_read syscall3 end
+
+fn close int -- int in SYS_close syscall1 end
+
+fn sendto int ptr int int ptr int -- int in SYS_sendto syscall6 end
+
+memory tmp_send_mem sizeof(u64) 4 * end
+
+fn send int ptr int int -- int in
+  cast(int) tmp_send_mem sizeof(u64) 3 * ptr+ !64
+  cast(int) tmp_send_mem sizeof(u64) 1 * ptr+ !64
+  cast(int) tmp_send_mem sizeof(u64) 2 * ptr+ !64
+  cast(int) tmp_send_mem sizeof(u64) 0 * ptr+ !64
+  "Sending to fd " puts
+  tmp_send_mem sizeof(u64) 0 * ptr+ @64 putu
+  "\n---\n\n" puts
+  tmp_send_mem sizeof(u64) 2 * ptr+ @64 cast(int)
+  tmp_send_mem sizeof(u64) 1 * ptr+ @64 cast(ptr)
+  puts
+  "\n---\n\n" puts
+  0 nullptr
+  tmp_send_mem sizeof(u64) 3 * ptr+ @64 cast(int)
+  tmp_send_mem sizeof(u64) 2 * ptr+ @64 cast(int)
+  tmp_send_mem sizeof(u64) 1 * ptr+ @64 cast(ptr)
+  tmp_send_mem sizeof(u64) 0 * ptr+ @64 cast(int)
+  sendto
+end
+
+fn htons int -- int in
+  bswap16
+end

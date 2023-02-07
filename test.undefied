@@ -1,15 +1,20 @@
-include "std"
+include "std/io"
+include "std/str"
+include "std/bool"
+include "std/cli-args"
 include "binaryparser"
 include "hexparser"
 
 fn text int -- Str in
-       dup 0 = if  "Zero" return
-  else dup 1 = if* "One" return
-  else drop "unknown" return
-  end
+       dup 0 = if  drop "Zero" return
+  else dup 1 = if* drop "One" return
+  else end
+  drop "unknown"
 end
 
 fn main in
+   cli-args_setup
+
   11 10 + print
   
   "Exit\n" puts
@@ -34,5 +39,5 @@ fn main in
   "ffff" parseHexVal print
 
 
-  # "aaa"c "bbb"c cstreq printb
+  "aaa" "aaa" streq printb
 end

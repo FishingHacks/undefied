@@ -14,8 +14,8 @@ export function dce(program: Program) {
         if (op.type === OpType.SkipFn && skipping) assert(false, 'Unreachable');
         else if (
             op.type === OpType.SkipFn &&
-            program.contracts[i - 1] &&
-            !program.contracts[i - 1].used
+            program.contracts[i + 1] &&
+            !program.contracts[i + 1].used
         ) {
             skipping = true;
             newops.push({
@@ -24,8 +24,9 @@ export function dce(program: Program) {
                 operation: Intrinsic.CastInt,
                 token: op.token,
             });
-        } else if (op.type === OpType.Ret && skipping) {
+        } else if (op.type === OpType.Ret && skipping && op.operation !== 1) {
             skipping = false;
+            
             newops.push({
                 type: OpType.Intrinsic,
                 location: op.location,

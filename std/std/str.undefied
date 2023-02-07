@@ -1,3 +1,6 @@
+include "values"
+include "std/ptr"
+
 struct Str in
   pointer ptr
   length int
@@ -7,3 +10,40 @@ struct CStr in
 end
 fn cstrToStr CStr -- Str in 0 1 while drop over over swap cast(int) + cast(ptr) @ 0 != if 1 + 1 else 0 end end drop swap end
 fn cstrlen CStr -- int in cstrToStr drop end
+
+
+fn cstreq ptr ptr -- bool in
+  over over cstrlen swap cstrlen != if drop drop false return end
+  dup cstrlen
+
+  # len ptr ptr 
+
+  while
+    rot
+    
+    over over @ swap @ != if drop drop drop false return end
+    1 ptr+ swap 1 ptr+
+
+    rot rot
+    1 -
+  end
+  drop drop drop true
+end
+
+memory tmp_strlen_streq sizeof(u64) end
+
+fn streq ptr int ptr int -- bool in
+  swap tmp_strlen_streq !64 rot rot tmp_strlen_streq @64 != if drop drop false return end
+  tmp_strlen_streq @64
+
+  while
+    rot
+
+    over over @ swap @ != if drop drop drop false return end
+    1 ptr+ swap 1 ptr+
+
+    rot rot
+    1 -
+  end
+  drop drop drop true
+end

@@ -1,7 +1,7 @@
-import { readFile } from "fs/promises";
-import { compilerError } from "./errors";
-import { parseHexValue, parseOctalValue, parseBinValue } from "./numberParser";
-import { Loc, Token, TokenType } from "./types";
+import { readFile } from 'fs/promises';
+import { compilerError } from './errors';
+import { parseHexValue, parseOctalValue, parseBinValue } from './numberParser';
+import { Loc, Token, TokenType } from './types';
 
 export async function generateTokens(file: string) {
     const lines = (await readFile(file))
@@ -146,6 +146,10 @@ export async function generateTokens(file: string) {
 }
 
 export function makeNumber(identifier: string): undefined | number {
+    if (identifier.startsWith('-')) {
+        const num = Number(identifier);
+        if (!isNaN(num) && isFinite(num) && num < 1) return num;
+    }
     if (identifier.length < 3) return;
     if (identifier.startsWith('0x')) {
         try {
@@ -171,8 +175,10 @@ export function escapeStr(str: string): string {
     const translationMatrix = { n: '\n', r: '\r', t: '\t', '0': '\0' };
 
     for (const c of Object.values(str)) {
-        if (escaping)
+        if (escaping) {
             _str += translationMatrix[c as keyof typeof translationMatrix] || c;
+            escaping = false;
+        }
         else if (c === '\\') escaping = true;
         else _str += c;
     }

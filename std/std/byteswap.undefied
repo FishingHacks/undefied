@@ -1,0 +1,26 @@
+fn bswap16 int -- int in
+    assembly
+      "pop rbx"
+      "movzx eax, bx"
+      "rol ax, 8"
+      "push rax"
+    end
+end
+
+fn bswap32 int -- int in
+    assembly
+      "pop rbx"
+      "movzx eax, bx"
+      "bswap eax"
+      "push rax"
+    end
+end
+
+fn bswap64 int -- int in
+    assembly
+      "pop rbx"
+      "movzx eax, bx"
+      "bswap eax"
+      "push rax"
+    end
+end

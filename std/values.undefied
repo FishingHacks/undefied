@@ -1,7 +1,20 @@
+const sizeof(u64) 8 end
+const sizeof(u32) 4 end
+const sizeof(u16) 2 end
+const sizeof(u8)  1 end
+
 const true 1 cast(bool) end
 const false 0 cast(bool) end
 const null 0 end
 const nullptr 0 cast(ptr) end
-const sizeof(bool) 1 end
-const sizeof(int) 1 end
-const sizeof(ptr) 1 end
+
+const sizeof(bool) sizeof(u64) end
+const sizeof(int)  sizeof(u64) end
+const sizeof(ptr)  sizeof(u64) end
+
+fn inc64 ptr in dup @64 1 + swap !64 end
+fn dec64 ptr in dup @64 1 - swap !64 end
+fn inc32 ptr in dup @32 1 + swap !32 end
+fn dec32 ptr in dup @32 1 - swap !32 end
+fn inc8  ptr in dup @   1 + swap !   end
+fn dec8  ptr in dup @   1 - swap !   end

@@ -108,6 +108,7 @@ function $typecheckProgram(
                 { loc: op.location, type: Type.Int },
                 { loc: op.location, type: Type.Ptr }
             );
+        else if (op.type === OpType.PushAsm) {}
         else if (op.type === OpType.Intrinsic) {
             switch (op.operation) {
                 case Intrinsic.And:
@@ -206,6 +207,8 @@ function $typecheckProgram(
                     else stack.push({ type: Type.Bool, loc: op.location });
                     break;
                 case Intrinsic.Load:
+                case Intrinsic.Load16:
+                case Intrinsic.Load32:
                 case Intrinsic.Load64:
                     var ptr = stack.pop();
                     if (!ptr)
@@ -257,6 +260,8 @@ function $typecheckProgram(
                     stack.push({ loc: op.location, type: Type.Int });
                     break;
                 case Intrinsic.Store:
+                case Intrinsic.Store16:
+                case Intrinsic.Store32:
                 case Intrinsic.Store64:
                     var [ptr, int] = [stack.pop(), stack.pop()];
                     if (!ptr || !int)
@@ -449,7 +454,7 @@ function $typecheckProgram(
                             op.location,
                             'Stack does not have enough values for this operation'
                         );
-                    else stack.push(v3, v1, v2);
+                    else stack.push(v1, v3, v2);
                     break;
                 case Intrinsic.fakeBool:
                     stack.push({ loc: op.location, type: Type.Bool });

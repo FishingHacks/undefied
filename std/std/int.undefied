@@ -4,3 +4,60 @@ fn / int int -- int in /% drop end
 fn % int int -- int in /% swap drop end
 fn div int int -- int in /% drop end
 fn mod int int -- int in /% swap drop end
+fn @int ptr -- int in @64 end
+fn !int int ptr in swap !64 end
+
+fn gethexcc int -- int in
+    dup 10 < if '0' +
+    else 'a' + 10 - end 
+end
+
+memory ph_tmp_store 32 end
+
+fn hexToStr int -- ptr int in 
+dup 1 < if drop "0" return end
+31 swap
+while
+    dup 15 and gethexcc
+    swap rot over ph_tmp_store cast(int) + cast(ptr) !
+    1 -
+    swap
+    4 shr
+    dup 1 <
+    if drop 0 end
+end  
+drop dup 32 swap - ph_tmp_store cast(int) rot rot + cast(ptr)
+end
+
+memory pd_tmp_store 32 end
+
+fn decToStr int -- ptr int in
+dup 1 < if drop "0" return end
+31 swap
+while
+    10 /% '0' +
+    rot rot 
+    dup swap rot pd_tmp_store cast(int) + cast(ptr)  !
+    1 -
+    swap
+    dup 1 <
+    if drop 0 end
+end
+drop dup 32 swap - pd_tmp_store cast(int) rot rot + cast(ptr)
+end
+
+memory pb_tmp_store 64 end
+fn binToStr int -- ptr int in 
+dup 1 < if drop "0" return end
+31 swap
+while
+    dup 1 and '0' +
+    swap rot over pb_tmp_store cast(int) + cast(ptr) !
+    1 -
+    swap
+    1 shr
+    dup 1 <
+    if drop 0 end
+end  
+drop dup 32 swap - pb_tmp_store cast(int) rot rot + cast(ptr)
+end

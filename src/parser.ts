@@ -6,7 +6,13 @@ import {
     IntrinsicNames,
     INCLUDE_DIRECTORY,
 } from './constants';
-import { compilerError, expectedTT, doesntmatchTT } from './errors';
+import {
+    compilerError,
+    expectedTT,
+    doesntmatchTT,
+    expectedChars,
+    error,
+} from './errors';
 import { generateTokens, makeNumber } from './generateTokens';
 import { Loc, TokenType, OpType, Type, Token, Program } from './types';
 import { checkExistence, humanTokenType, valid } from './utils';
@@ -23,6 +29,7 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
     };
     const constants: Record<string, { type: Type; value: number }> = {};
     const included: string[] = [];
+    if (!tokens.length) error('The file is empty!');
 
     let isInFunction: boolean = false;
     let nestings = 0;
@@ -147,6 +154,7 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                         '+',
                         '-',
                         '/',
+                        '*',
                         '%',
                         'cast(ptr)',
                         'cast(bool)',
@@ -553,6 +561,7 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                             '+',
                             '-',
                             '/',
+                            '*',
                             '%',
                             'cast(ptr)',
                             'cast(bool)',
@@ -586,11 +595,13 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                                         t.loc,
                                         'Simulationstack does not contain enough values for this operation'
                                     );
-                                else
-                                    simStack.push(
-                                        (simStack.pop() || 0) +
-                                            (simStack.pop() || 0)
-                                    );
+                                {
+                                    const [v2, v1] = [
+                                        simStack.pop(),
+                                        simStack.pop(),
+                                    ];
+                                    simStack.push((v1 || 0) + (v2 || 0));
+                                }
                                 break;
                             case '-':
                                 if (simStack.length < 2)
@@ -598,11 +609,13 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                                         t.loc,
                                         'Simulationstack does not contain enough values for this operation'
                                     );
-                                else
-                                    simStack.push(
-                                        (simStack.pop() || 0) -
-                                            (simStack.pop() || 0)
-                                    );
+                                else {
+                                    const [v2, v1] = [
+                                        simStack.pop(),
+                                        simStack.pop(),
+                                    ];
+                                    simStack.push((v1 || 0) - (v2 || 0));
+                                }
                                 break;
                             case '*':
                                 if (simStack.length < 2)
@@ -610,11 +623,13 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                                         t.loc,
                                         'Simulationstack does not contain enough values for this operation'
                                     );
-                                else
-                                    simStack.push(
-                                        (simStack.pop() || 0) *
-                                            (simStack.pop() || 0)
-                                    );
+                                {
+                                    const [v2, v1] = [
+                                        simStack.pop(),
+                                        simStack.pop(),
+                                    ];
+                                    simStack.push((v1 || 0) * (v2 || 0));
+                                }
                                 break;
                             case '/':
                                 if (simStack.length < 2)
@@ -622,11 +637,13 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                                         t.loc,
                                         'Simulationstack does not contain enough values for this operation'
                                     );
-                                else
-                                    simStack.push(
-                                        (simStack.pop() || 0) /
-                                            (simStack.pop() || 0)
-                                    );
+                                {
+                                    const [v2, v1] = [
+                                        simStack.pop(),
+                                        simStack.pop(),
+                                    ];
+                                    simStack.push((v1 || 0) / (v2 || 0));
+                                }
                                 break;
                             case '%':
                                 if (simStack.length < 2)
@@ -634,11 +651,13 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                                         t.loc,
                                         'Simulationstack does not contain enough values for this operation'
                                     );
-                                else
-                                    simStack.push(
-                                        (simStack.pop() || 0) %
-                                            (simStack.pop() || 0)
-                                    );
+                                {
+                                    const [v2, v1] = [
+                                        simStack.pop(),
+                                        simStack.pop(),
+                                    ];
+                                    simStack.push((v1 || 0) % (v2 || 0));
+                                }
                                 break;
                             case 'cast(ptr)':
                                 type = Type.Ptr;
@@ -655,16 +674,16 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                     } else assert(false, 'unreachable');
                 }
 
-                if (simStack.length !== 1)
+                if (simStack.length !== 1 && !reset)
                     compilerError(
                         token.loc,
                         'Error: No or too many elements on the Simulation stack'
                     );
                 else {
-                    if (type === Type.Bool)
-                        simStack[0] = simStack[0] === 0 ? 0 : 1;
                     if ((offset || reset) && type !== Type.Int)
                         compilerError(token.loc, 'Only integers can be offset');
+                    if (type === Type.Bool)
+                        simStack[0] = simStack[0] === 0 ? 0 : 1;
                     if (offset || reset) {
                         constants[name.value] = { type, value: offsetValue };
                         offsetValue = offset ? offsetValue + simStack[0] : 0;
@@ -780,7 +799,7 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
             program.ops.push({
                 type: OpType.Ret,
                 location: token.loc,
-                operation: 0,
+                operation: 1,
                 token,
             });
         } else if (
@@ -788,23 +807,46 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
             token.value === 'assembly'
         ) {
             ip++;
-            const assembly = tokens[ip];
-            if (
-                !assembly ||
-                (assembly.type !== TokenType.String &&
-                    assembly.type !== TokenType.CString)
-            )
-                expectedTT(
-                    assembly?.loc || token.loc,
-                    TokenType.String,
-                    assembly?.type || TokenType.None
+            let value = '';
+
+            while (ip < tokens.length) {
+                const tok = tokens[ip];
+                if (!tok) break;
+
+                if (
+                    tok.type === TokenType.String ||
+                    tok.type === TokenType.CString
+                ) {
+                    if (tok.value) value += tok.value + '\n';
+                } else if (tok.type === TokenType.Word && tok.value === 'end')
+                    break;
+                else if (tok.type === TokenType.Word)
+                    expectedChars(tok.loc, 'end', tok.value);
+                else
+                    compilerError(
+                        tok.loc,
+                        'Expected end, CString or String, but found ' +
+                            humanTokenType(tok.type)
+                    );
+
+                ip++;
+            }
+
+            if (tokens[ip] === undefined)
+                compilerError(
+                    token.loc,
+                    'Expected end, CString or String but found nothing!'
                 );
+            else if (tokens[ip].type !== TokenType.Word)
+                expectedTT(tokens[ip].loc, TokenType.Word, tokens[ip].type);
+            else if (tokens[ip].value !== 'end')
+                expectedChars(tokens[ip].loc, 'end', tokens[ip].value);
             else
                 program.ops.push({
                     type: OpType.PushAsm,
                     location: token.loc,
                     token,
-                    operation: assembly.value,
+                    operation: value,
                 });
         } else {
             if (
@@ -816,7 +858,8 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
                 functions[token.value] === undefined &&
                 constants[token.value] === undefined
             ) {
-                throw new Error(
+                compilerError(
+                    token.loc,
                     'Word "' +
                         token.value +
                         '" is not an Intrinsic, Keyword, function or memory name'
@@ -880,6 +923,5 @@ export async function parseProgram(tokens: Token[]): Promise<Program> {
         }
         ip++;
     }
-
     return program;
 }
