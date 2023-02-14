@@ -32,4 +32,10 @@ dist
 .cache
 .serverless/
 .fusebox/
-*.js
+bin/*.js
+src/*.js
+*.o
+
+
+test.asm
+test

@@ -1,6 +1,10 @@
 include "std/bool"
 
-fn parseHexDig int -- int in
+.ifdef parseHexDig undef parseHexDig .end
+.ifdef parseHexVal undef parseHexVal .end
+.ifdef hexstore .error "hexstore is already defined :c" .end
+
+inline fn parseHexDig int -- int in
 dup '0' >= over '9' <= land if '0' -
 else dup 'a' >= over 'f' <= land if* 'a' - 10 +
 else drop 16 end

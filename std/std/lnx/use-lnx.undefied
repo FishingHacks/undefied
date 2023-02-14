@@ -1,0 +1,5 @@
+include "std/target"
+.pragma multiple
+
+.ifndef __TARGET_LINUX_SUPPORT__ const __TARGET_LINUX_SUPPORT__ 0 cast(bool) end .end
+.ifn __TARGET_LINUX_SUPPORT__ .error "Error: Included lnx in the stdlib, but the target does not support linux" .end

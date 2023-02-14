@@ -1,6 +1,15 @@
 include "values"
 include "std/ptr"
 
+.ifdef Str undef Str .end
+.ifdef CStr undef CStr .end
+.ifdef cstrToStr undef cstrToStr .end
+.ifdef cstrlen undef cstrlen .end
+.ifdef cstreq undef cstreq .end
+.ifdef streq undef streq .end
+
+.ifdef tmp_strlen_streq .error "tmp_strlen_streq is already defined :c" .end
+
 struct Str in
   pointer ptr
   length int
@@ -8,15 +17,21 @@ end
 struct CStr in
   pointer ptr
 end
-fn cstrToStr CStr -- Str in 0 1 while drop over over swap cast(int) + cast(ptr) @ 0 != if 1 + 1 else 0 end end drop swap end
-fn cstrlen CStr -- int in cstrToStr drop end
 
+fn cstrToStr CStr -- Str in 0 1 while drop over over swap cast(int) + cast(ptr) @ 0 != if 1 + 1 else 0 end end drop swap end
+
+fn cstrlen ptr -- int in
+  0 1
+  while
+    drop
+    swap dup @64 0 = if swap 0 else swap 1 + 1 end
+  end
+  drop swap drop
+end
 
 fn cstreq ptr ptr -- bool in
   over over cstrlen swap cstrlen != if drop drop false return end
   dup cstrlen
-
-  # len ptr ptr 
 
   while
     rot

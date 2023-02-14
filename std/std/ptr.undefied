@@ -1,10 +1,21 @@
 include "std/io"
 
-fn ptr+ int ptr -- ptr in swap cast(int) + cast(ptr) end
-fn +ptr ptr int -- ptr in cast(int) + cast(ptr) end
-fn ptr- int ptr -- ptr in swap cast(int) - cast(ptr) end
-fn -ptr ptr int -- ptr in cast(int) - cast(ptr) end
-fn printptr ptr in cast(int) putx end
-fn @ptr ptr -- ptr in @64 cast(ptr) end
-fn @@ptr ptr -- ptr in @ptr @ptr end
-fn !ptr ptr ptr in cast(int) swap !64 end
+.ifdef ptr-to-int undef ptr-to-int .end
+.ifdef ptr+ undef ptr+ .end
+.ifdef ptr- undef ptr- .end
+.ifdef @@ptr undef @@ptr .end
+.ifdef -ptr undef -ptr .end
+.ifdef +ptr undef +ptr .end
+.ifdef printptr undef printptr .end
+.ifdef @ptr undef @ptr .end
+.ifdef !ptr undef !ptr .end
+
+inline fn ptr-to-int int ptr -- int int in fake(drop) fake(drop) fake(int) fake(int) end
+inline fn ptr+ int ptr -- ptr in ptr-to-int + cast(ptr) end
+inline fn +ptr ptr int -- ptr in cast(int) + cast(ptr) end
+inline fn ptr- int ptr -- ptr in ptr-to-int - cast(ptr) end
+inline fn -ptr ptr int -- ptr in cast(int) - cast(ptr) end
+inline fn printptr ptr in cast(int) putx end
+inline fn @ptr ptr -- ptr in @64 cast(ptr) end
+inline fn @@ptr ptr -- ptr in @ptr @ptr end
+inline fn !ptr ptr ptr in fake(drop) fake(drop) cast(ptr) cast(int) !64 end

@@ -1,8 +1,13 @@
+include "./use-lnx"
 include "std/ptr"
+
+.ifdef nthArg undef nthArg .end
+.ifdef cli-args_setup undef cli-args_setup .end
+.ifdef argc .error "argc is already defined" .end
 
 fn nthArg int -- ptr in 8 * argv cast(int) + cast(ptr) @64 cast(ptr) end
 memory argc 8 end
 
-fn cli-args_setup in
+inline fn cli-args_setup in
 argv 0 8 - ptr+ @ argc !
 end

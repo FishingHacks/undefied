@@ -1,20 +1,33 @@
+# This is the test thingi
+# Testing your features will help
+# Catch bugs :>
+
+include "./once"
+include "./once"
+include "./once"
+include "./multiple"
+include "./multiple"
+include "./multiple"
+
 include "std/io"
 include "std/str"
 include "std/bool"
 include "std/cli-args"
 include "binaryparser"
 include "hexparser"
+include "std/all"
+include "std/target"
 
-fn text int -- Str in
-       dup 0 = if  drop "Zero" return
-  else dup 1 = if* drop "One" return
-  else end
-  drop "unknown"
+inline fn helloWorld in
+  "Hello, World!\n" puts
 end
 
-fn main in
-   cli-args_setup
+fn maina in
+  "Supports: " puts __TARGET__ putu " (" puts __TARGET_SUPPORT__ puts ")\n" puts
+  "Compilation Target: " puts __TARGET_STR__ puts "\n" puts
+  helloWorld
 
+  cli-args_setup
   11 10 + print
   
   "Exit\n" puts
@@ -22,14 +35,13 @@ fn main in
   2 nthArg cstrToStr puts "\n" puts
   argc @ print
   
-  
   4
-       dup 1 = if  "one"
+  dup 1 = if  "one"
   else dup 2 = if* "two"
   else dup 3 = if* "three"
   else             "unknown"
   end puts drop
-  
+
   "10" parseBinVal print
   "1001" parseBinVal print
   "11" parseBinVal print
@@ -38,6 +50,9 @@ fn main in
   "ff" parseHexVal print
   "ffff" parseHexVal print
 
-
   "aaa" "aaa" streq printb
 end
+
+fn mainb in end
+
+fn main in maina end

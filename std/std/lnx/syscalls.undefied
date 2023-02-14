@@ -1,18 +1,26 @@
+include "./use-lnx"
 include "std/lnx/syscalltable"
 
-fn SC_exit int in SYS_exit syscall1 drop end
-fn SC_write int ptr int in SYS_write syscall3 drop end
-fn SC_read int ptr int in SYS_read syscall3 drop end
-fn SC_open ptr int int in SYS_open syscall3 drop end
-fn SC_close int in SYS_close syscall1 drop end
-fn SC_mmap
+.ifdef SC_close undef SC_close .end
+.ifdef SC_exit undef SC_exit .end
+.ifdef SC_write undef SC_write .end
+.ifdef SC_read undef SC_read .end
+.ifdef SC_open undef SC_open .end
+.ifdef SC_mmap undef SC_mmap .end
+
+inline fn SC_exit int in SYS_exit syscall1 drop end
+inline fn SC_write int ptr int in SYS_write syscall3 drop end
+inline fn SC_read int ptr int in SYS_read syscall3 drop end
+inline fn SC_open ptr int int in SYS_open syscall3 drop end
+inline fn SC_close int in SYS_close syscall1 drop end
+inline fn SC_mmap
   ptr int int int int int
   --
   ptr
 in
   SYS_mmap syscall6 cast(ptr)
 end
-fn SC_munmap
+inline fn SC_munmap
   ptr int
   --
   int

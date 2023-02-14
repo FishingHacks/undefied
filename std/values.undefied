@@ -1,7 +1,25 @@
-const sizeof(u64) 8 end
-const sizeof(u32) 4 end
-const sizeof(u16) 2 end
-const sizeof(u8)  1 end
+.ifdef sizeof(u8) undef sizeof(u8) .end
+.ifdef sizeof(u16) undef sizeof(u16) .end
+.ifdef sizeof(u32) undef sizeof(u32) .end
+.ifdef sizeof(u64) undef sizeof(u64) .end
+.ifdef sizeof(bool) undef sizeof(bool) .end
+.ifdef sizeof(int) undef sizeof(int) .end
+.ifdef sizeof(ptr) undef sizeof(ptr) .end
+.ifdef true undef true .end
+.ifdef false undef false .end
+.ifdef null undef null .end
+.ifdef nullptr undef nullptr .end
+.ifdef inc64 undef inc64 .end
+.ifdef dec64 undef dec64 .end
+.ifdef inc32 undef inc32 .end
+.ifdef dec32 undef dec32 .end
+.ifdef inc8 undef inc8 .end
+.ifdef dec8 undef dec8 .end
+
+const sizeof(u8) 1 end
+const sizeof(u16) sizeof(u8) 2 * end
+const sizeof(u32) sizeof(u16) 2 * end
+const sizeof(u64) sizeof(u32) 2 * end
 
 const true 1 cast(bool) end
 const false 0 cast(bool) end
@@ -12,9 +30,9 @@ const sizeof(bool) sizeof(u64) end
 const sizeof(int)  sizeof(u64) end
 const sizeof(ptr)  sizeof(u64) end
 
-fn inc64 ptr in dup @64 1 + swap !64 end
-fn dec64 ptr in dup @64 1 - swap !64 end
-fn inc32 ptr in dup @32 1 + swap !32 end
-fn dec32 ptr in dup @32 1 - swap !32 end
-fn inc8  ptr in dup @   1 + swap !   end
-fn dec8  ptr in dup @   1 - swap !   end
+inline fn inc64 ptr in dup @64 1 + swap !64 end
+inline fn dec64 ptr in dup @64 1 - swap !64 end
+inline fn inc32 ptr in dup @32 1 + swap !32 end
+inline fn dec32 ptr in dup @32 1 - swap !32 end
+inline fn inc8  ptr in dup @   1 + swap !   end
+inline fn dec8  ptr in dup @   1 - swap !   end

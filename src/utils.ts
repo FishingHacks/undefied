@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { spawnSync } from 'child_process';
 import { constants, existsSync, lstatSync } from 'fs';
 import { access, lstat } from 'fs/promises';
-import { error } from './errors';
+import { error, info } from './errors';
 import { Loc, TokenType, Type } from './types';
 
 export function humanTokenType(type: TokenType) {
@@ -13,6 +13,7 @@ export function humanTokenType(type: TokenType) {
     else if (type === TokenType.String) return 'String';
     else if (type === TokenType.Word) return 'Word';
     else if (type === TokenType.CharCode) return 'CharCode';
+    else if (type === TokenType.Comment) return 'Comment';
     else assert(false, 'This should never happen');
 }
 
@@ -43,30 +44,27 @@ export function checkExistence(
 }
 
 export function cmd_echoed(cmd: string, name?: string) {
-    console.log(chalk.yellow('[INFO] [CMD]: Running ' + cmd));
+    info('[CMD]: Running ' + cmd);
     const proc = spawnSync(cmd, { shell: true });
     if (proc.stderr.length > 0)
-        console.error(
-            chalk.redBright(
-                proc.stderr
-                    .toString('utf-8')
-                    .split('\n')
-                    .map((el) => '[ERR] [' + (name === undefined?cmd:name) + ']: ' + el)
-                    .join('\n')
-            )
-        );
+        proc.stderr
+            .toString('utf-8')
+            .split('\n')
+            .map((el) => '[' + (name === undefined ? cmd : name) + ']: ' + el)
+            .forEach((el) => error(el));
     if (proc.stdout.length > 0)
-        console.error(
-            chalk.yellow(
-                proc.stdout
-                    .toString('utf-8')
-                    .split('\n')
-                    .map((el) => '[INFO] [' + (name === undefined?cmd:name) + ']: ' + el)
-                    .join('\n')
-            )
-        );
+        proc.stdout
+            .toString('utf-8')
+            .split('\n')
+            .map((el) => '[' + (name === undefined ? cmd : name) + ']: ' + el)
+            .forEach((el) => info(el));
     if (proc.error) {
-        error('[ERR] [' + (name === undefined?cmd:name) + ']: ' + (proc.error.stack || proc.error.message || proc.error.name));
+        error(
+            '[ERR] [' +
+                (name === undefined ? cmd : name) +
+                ']: ' +
+                (proc.error.stack || proc.error.message || proc.error.name)
+        );
     }
     if (proc.stderr.length > 0) process.exit(1);
 }
@@ -85,4 +83,8 @@ export async function isFile(file: string) {
 
 export function humanLocation(location: Loc) {
     return location.join(':');
+}
+export function arrayify<T>(value: T | T[]): T[] {
+    if (value instanceof Array) return value;
+    return [value];
 }

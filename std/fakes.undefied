@@ -1,0 +1,6 @@
+include "std/fakes/drop"
+include "std/fakes/bool"
+include "std/fakes/int"
+include "std/fakes/ptr"
+include "std/fakes/cstr"
+include "std/fakes/str"

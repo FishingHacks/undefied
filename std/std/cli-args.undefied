@@ -1,1 +1,2 @@
-include "std/lnx/cli-args"
+include "std/target"
+.if __TARGET_LINUX_SUPPORT__ include "std/lnx/cli-args" .end

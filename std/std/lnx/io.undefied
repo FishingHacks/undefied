@@ -1,5 +1,10 @@
+include "./use-lnx"
+.ifdef FD_stdio undef FD_stdio .end
+.ifdef FD_stderr undef FD_stderr .end
+.ifdef fputs undef fputs .end
+
 const FD_stdio 1 end
 const FD_stderr 2 end
-fn fputs int ptr int in
-1 syscall3 drop
+inline fn fputs int ptr int in
+    1 syscall3 drop
 end

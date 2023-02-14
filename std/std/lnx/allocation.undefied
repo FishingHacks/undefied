@@ -1,7 +1,37 @@
+include "./use-lnx"
 include "std/lnx/syscalls"
 include "values"
+include "std/int"
 
-memory a 10 11 + end
+.ifdef MAP_SHARED undef MAP_SHARED .end
+.ifdef MAP_PRIVATE undef MAP_PRIVATE .end
+.ifdef MAP_SHARED_VALIDATE undef MAP_SHARED_VALIDATE .end
+.ifdef MAP_TYPE undef MAP_TYPE .end
+.ifdef MAP_FIXED undef MAP_FIXED .end
+.ifdef MAP_ANON undef MAP_ANON .end
+.ifdef MAP_ANONYMOUS undef MAP_ANONYMOUS .end
+.ifdef MAP_NORESERVE undef MAP_NORESERVE .end
+.ifdef MAP_GROWSDOWN undef MAP_GROWSDOWN .end
+.ifdef MAP_DENYWRITE undef MAP_DENYWRITE .end
+.ifdef MAP_EXECUTABLE undef MAP_EXECUTABLE .end
+.ifdef MAP_LOCKED undef MAP_LOCKED .end
+.ifdef MAP_POPULATE undef MAP_POPULATE .end
+.ifdef MAP_NONBLOCK undef MAP_NONBLOCK .end
+.ifdef MAP_STACK undef MAP_STACK .end
+.ifdef MAP_HUGETLB undef MAP_HUGETLB .end
+.ifdef MAP_SYNC undef MAP_SYNC .end
+.ifdef MAP_FIXED_NOREPLACE undef MAP_FIXED_NOREPLACE .end
+.ifdef MAP_FILE undef MAP_FILE .end
+.ifdef PROT_NONE undef PROT_NONE .end
+.ifdef PROT_READ undef PROT_READ .end
+.ifdef PROT_WRITE undef PROT_WRITE .end
+.ifdef PROT_EXEC undef PROT_EXEC .end
+.ifdef PROT_GROWSDOWN undef PROT_GROWSDOWN .end
+.ifdef PROT_GROWSUP undef PROT_GROWSUP .end
+.ifdef malloc undef malloc .end
+.ifdef free undef free .end
+.ifdef MEM_CHUNK undef MEM_CHUNK .end
+.ifdef makesz undef makesz .end
 
 const MAP_SHARED     0x01 end
 const MAP_PRIVATE    0x02 end
@@ -46,4 +76,10 @@ fn free ptr in
   cast(int) 1 - cast(ptr)
   dup @
   swap SC_munmap drop
+end
+
+const MEM_CHUNK 4 1024 * end # 4096 bytes = 4KiB
+
+fn makesz int -- int in
+  dup MEM_CHUNK mod MEM_CHUNK swap - +
 end

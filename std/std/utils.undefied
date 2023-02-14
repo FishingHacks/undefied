@@ -1,0 +1,4 @@
+.ifdef 2drop undef 2drop .end
+.ifdef 2dup undef 2dup .end
+inline fn 2drop in drop drop end
+inline fn 2dup in over over end

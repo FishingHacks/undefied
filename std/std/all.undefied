@@ -1,6 +1,8 @@
 include "values"
 include "binaryparser"
 include "hexparser"
+include "fakes"
+include "std/utils"
 include "std/bool"
 include "std/int"
 include "std/io"
@@ -10,6 +12,11 @@ include "std/byteswap"
 include "std/str"
 include "std/memory"
 include "std/cli-args"
-include "std/lnx/allocation"
-include "std/lnx/syscalltable"
-include "std/lnx/syscalls"
+include "std/target"
+
+.if __TARGET_LINUX_SUPPORT__
+    include "std/lnx/allocation"
+    include "std/lnx/syscalltable"
+    include "std/lnx/syscalls"
+    include "std/lnx/socket"
+.end

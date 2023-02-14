@@ -1,11 +1,87 @@
 include "values"
 include "std/io"
+include "std/target"
 
-fn lnot bool -- bool in if false return end true end
-fn lor bool bool -- bool in if drop true return end end
-fn land bool bool -- bool in if return end drop false end
-fn lxor bool bool -- bool in over over land if drop drop false return end lor end
-fn printb bool in if "true" else "false" end puts end
-fn Boolean::toString bool -- ptr int in if "true" else "false" end end
-fn @bool ptr -- bool in @64 cast(bool) end
-fn !bool bool ptr in cast(int) swap !64 end
+.ifdef Boolean::toString undef Boolean::toString .end
+.ifdef lnot undef lnot .end
+.ifdef lxor undef lxor .end
+.ifdef land undef land .end
+.ifdef lor undef lor .end
+.ifdef printb undef printb .end
+.ifdef @bool undef @bool .end
+.ifdef !bool undef !bool .end
+
+inline fn lnot bool -- bool in
+    cast(bool)
+    .if __TARGET_LINUX_SUPPORT__
+        .ifdef __defined undef __defined .end
+        const __defined 1 end
+        .param __supports_linux__
+        assembly
+            "pop rax"
+            "xor rax, 1"
+            "push rax"
+        end
+    .end
+    .ifndef __defined .error "Could not find assembly for the target" .end
+    cast(bool)
+end
+
+
+inline fn lxor bool bool -- bool in
+    cast(bool) swap cast(bool)
+    .if __TARGET_LINUX_SUPPORT__
+        .ifdef __defined undef __defined .end
+        const __defined 1 end
+
+        .param __supports_linux__
+        assembly
+            "pop rax"
+            "pop rbx"
+            "xor rbx, rax"
+            "push rax"
+        end
+    .end
+    .ifndef __defined .error "Could not find assembly for the target" .end
+    fake(drop) cast(bool)
+end
+
+inline fn lor bool bool -- bool in
+    cast(bool) swap cast(bool)
+    .if __TARGET_LINUX_SUPPORT__
+        .ifdef __defined undef __defined .end
+        const __defined 1 end
+        .param __supports_linux__
+        assembly
+            "pop rax"
+            "pop rbx"
+            "or rbx, rax"
+            "push rax"
+        end
+    .end
+    .ifndef __defined .error "Could not find assembly for the target" .end
+    fake(drop) cast(bool)
+end
+
+inline fn land bool bool -- bool in
+    cast(bool) swap cast(bool)
+    .if __TARGET_LINUX_SUPPORT__
+        .ifdef __defined undef __defined .end
+        const __defined 1 end
+        .param __supports_linux__
+        assembly
+            "pop rax"
+            "pop rbx"
+            "and rbx, rax"
+            "push rax"
+        end
+    .end
+    .ifndef __defined .error "Could not find assembly for the target" .end
+    undef __defined
+    fake(drop) cast(bool)
+end
+
+inline fn Boolean::toString bool -- ptr int in if "true" else "false" end end
+inline fn printb bool in Boolean::toString puts end
+inline fn @bool ptr -- bool in @64 cast(bool) end
+inline fn !bool bool ptr in cast(int) swap !64 end

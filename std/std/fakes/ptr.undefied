@@ -1,0 +1,59 @@
+.ifdef 2fake(ptr) undef 2fake(ptr) .end
+.ifdef 3fake(ptr) undef 3fake(ptr) .end
+.ifdef 4fake(ptr) undef 4fake(ptr) .end
+.ifdef 5fake(ptr) undef 5fake(ptr) .end
+.ifdef 6fake(ptr) undef 6fake(ptr) .end
+.ifdef 7fake(ptr) undef 7fake(ptr) .end
+.ifdef 8fake(ptr) undef 8fake(ptr) .end
+.ifdef 9fake(ptr) undef 9fake(ptr) .end
+.ifdef 10fake(ptr) undef 10fake(ptr) .end
+.ifdef 11fake(ptr) undef 11fake(ptr) .end
+.ifdef 12fake(ptr) undef 12fake(ptr) .end
+.ifdef 13fake(ptr) undef 13fake(ptr) .end
+.ifdef 14fake(ptr) undef 14fake(ptr) .end
+.ifdef 15fake(ptr) undef 15fake(ptr) .end
+.ifdef 16fake(ptr) undef 16fake(ptr) .end
+.ifdef 17fake(ptr) undef 17fake(ptr) .end
+.ifdef 18fake(ptr) undef 18fake(ptr) .end
+.ifdef 19fake(ptr) undef 19fake(ptr) .end
+.ifdef 20fake(ptr) undef 20fake(ptr) .end
+.ifdef 21fake(ptr) undef 21fake(ptr) .end
+.ifdef 22fake(ptr) undef 22fake(ptr) .end
+.ifdef 23fake(ptr) undef 23fake(ptr) .end
+.ifdef 24fake(ptr) undef 24fake(ptr) .end
+.ifdef 25fake(ptr) undef 25fake(ptr) .end
+.ifdef 26fake(ptr) undef 26fake(ptr) .end
+.ifdef 27fake(ptr) undef 27fake(ptr) .end
+.ifdef 28fake(ptr) undef 28fake(ptr) .end
+.ifdef 29fake(ptr) undef 29fake(ptr) .end
+.ifdef 30fake(ptr) undef 30fake(ptr) .end
+
+inline fn 2fake(ptr) in fake(ptr) fake(ptr) end
+inline fn 3fake(ptr) in fake(ptr) fake(ptr) fake(ptr) end
+inline fn 4fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 5fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 6fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 7fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 8fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 9fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 10fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 11fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 12fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 13fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 14fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 15fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 16fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 17fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 18fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 19fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 20fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 21fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 22fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 23fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 24fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 25fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 26fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 27fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 28fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 29fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end
+inline fn 30fake(ptr) in fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) fake(ptr) end

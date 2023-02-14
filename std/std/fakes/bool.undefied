@@ -1,0 +1,59 @@
+.ifdef 2fake(bool) undef 2fake(bool) .end
+.ifdef 3fake(bool) undef 3fake(bool) .end
+.ifdef 4fake(bool) undef 4fake(bool) .end
+.ifdef 5fake(bool) undef 5fake(bool) .end
+.ifdef 6fake(bool) undef 6fake(bool) .end
+.ifdef 7fake(bool) undef 7fake(bool) .end
+.ifdef 8fake(bool) undef 8fake(bool) .end
+.ifdef 9fake(bool) undef 9fake(bool) .end
+.ifdef 10fake(bool) undef 10fake(bool) .end
+.ifdef 11fake(bool) undef 11fake(bool) .end
+.ifdef 12fake(bool) undef 12fake(bool) .end
+.ifdef 13fake(bool) undef 13fake(bool) .end
+.ifdef 14fake(bool) undef 14fake(bool) .end
+.ifdef 15fake(bool) undef 15fake(bool) .end
+.ifdef 16fake(bool) undef 16fake(bool) .end
+.ifdef 17fake(bool) undef 17fake(bool) .end
+.ifdef 18fake(bool) undef 18fake(bool) .end
+.ifdef 19fake(bool) undef 19fake(bool) .end
+.ifdef 20fake(bool) undef 20fake(bool) .end
+.ifdef 21fake(bool) undef 21fake(bool) .end
+.ifdef 22fake(bool) undef 22fake(bool) .end
+.ifdef 23fake(bool) undef 23fake(bool) .end
+.ifdef 24fake(bool) undef 24fake(bool) .end
+.ifdef 25fake(bool) undef 25fake(bool) .end
+.ifdef 26fake(bool) undef 26fake(bool) .end
+.ifdef 27fake(bool) undef 27fake(bool) .end
+.ifdef 28fake(bool) undef 28fake(bool) .end
+.ifdef 29fake(bool) undef 29fake(bool) .end
+.ifdef 30fake(bool) undef 30fake(bool) .end
+
+inline fn 2fake(bool) in fake(bool) fake(bool) end
+inline fn 3fake(bool) in fake(bool) fake(bool) fake(bool) end
+inline fn 4fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 5fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 6fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 7fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 8fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 9fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 10fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 11fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 12fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 13fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 14fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 15fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 16fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 17fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 18fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 19fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 20fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 21fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 22fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 23fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 24fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 25fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 26fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 27fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 28fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 29fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end
+inline fn 30fake(bool) in fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) fake(bool) end

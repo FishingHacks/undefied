@@ -1,4 +1,8 @@
-fn parseBinDig int -- int in
+.ifdef parseBinDig undef parseBinDig .end
+.ifdef parseBinVal undef parseBinVal .end
+.ifdef binstore .error "binstore is already defined :c" .end
+
+inline fn parseBinDig int -- int in
 dup '0' = if drop 0
 else '1' = if* 1
 else 2 end

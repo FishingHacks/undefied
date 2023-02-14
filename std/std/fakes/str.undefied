@@ -1,0 +1,62 @@
+.ifdef fake(str) undef fake(str) .end
+.ifdef 2fake(str) undef 2fake(str) .end
+.ifdef 3fake(str) undef 3fake(str) .end
+.ifdef 4fake(str) undef 4fake(str) .end
+.ifdef 5fake(str) undef 5fake(str) .end
+.ifdef 6fake(str) undef 6fake(str) .end
+.ifdef 7fake(str) undef 7fake(str) .end
+.ifdef 8fake(str) undef 8fake(str) .end
+.ifdef 9fake(str) undef 9fake(str) .end
+.ifdef 10fake(str) undef 10fake(str) .end
+.ifdef 11fake(str) undef 11fake(str) .end
+.ifdef 12fake(str) undef 12fake(str) .end
+.ifdef 13fake(str) undef 13fake(str) .end
+.ifdef 14fake(str) undef 14fake(str) .end
+.ifdef 15fake(str) undef 15fake(str) .end
+.ifdef 16fake(str) undef 16fake(str) .end
+.ifdef 17fake(str) undef 17fake(str) .end
+.ifdef 18fake(str) undef 18fake(str) .end
+.ifdef 19fake(str) undef 19fake(str) .end
+.ifdef 20fake(str) undef 20fake(str) .end
+.ifdef 21fake(str) undef 21fake(str) .end
+.ifdef 22fake(str) undef 22fake(str) .end
+.ifdef 23fake(str) undef 23fake(str) .end
+.ifdef 24fake(str) undef 24fake(str) .end
+.ifdef 25fake(str) undef 25fake(str) .end
+.ifdef 26fake(str) undef 26fake(str) .end
+.ifdef 27fake(str) undef 27fake(str) .end
+.ifdef 28fake(str) undef 28fake(str) .end
+.ifdef 29fake(str) undef 29fake(str) .end
+.ifdef 30fake(str) undef 30fake(str) .end
+
+inline fn fake(str) in fake(int) fake(ptr) end
+
+inline fn 2fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 3fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 4fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 5fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 6fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 7fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 8fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 9fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 10fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 11fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 12fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 13fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 14fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 15fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 16fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 17fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 18fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 19fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 20fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 21fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 22fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 23fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 24fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 25fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 26fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 27fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 28fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 29fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end
+inline fn 30fake(str) in fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) fake(int) fake(ptr) end

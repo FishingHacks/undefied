@@ -1,6 +1,6 @@
-import assert from "assert";
-import { compilerError } from "./errors";
-import { Operation, OpType, Keyword, Program } from "./types";
+import assert from 'assert';
+import { compilerError } from './errors';
+import { Operation, OpType, Keyword, Program } from './types';
 
 export function crossReferenceProgram(program: Program): Program {
     const stack: string[] = [];
@@ -19,7 +19,7 @@ export function crossReferenceProgram(program: Program): Program {
                     _ip = stack.pop();
                     if (!_ip)
                         compilerError(
-                            op.location,
+                            [op.location],
                             'End expected `if` block, found nothing'
                         );
                     _op = program.ops[Number(_ip)];
@@ -28,13 +28,13 @@ export function crossReferenceProgram(program: Program): Program {
                         _op.operation !== Keyword.IfStar
                     )
                         compilerError(
-                            _op.location,
+                            [_op.location],
                             'Expected `if` block, found `' +
                                 _op.token.value +
                                 '`'
                         );
                     if (_op.type !== OpType.Keyword)
-                        compilerError(_op.location, 'Expected keyword');
+                        compilerError([_op.location], 'Expected keyword');
                     else _op.reference = Number(ip) + 1;
 
                     if (_op.operation === Keyword.IfStar) {
@@ -46,7 +46,7 @@ export function crossReferenceProgram(program: Program): Program {
                             ifstar_else_op.operation !== Keyword.Else
                         )
                             compilerError(
-                                _op.location,
+                                [_op.location],
                                 'if* needs to be prepended by else'
                             );
                         else ifstar_else_op.reference = Number(ip);
@@ -59,7 +59,7 @@ export function crossReferenceProgram(program: Program): Program {
                     _ip = stack.pop();
                     if (!_ip)
                         compilerError(
-                            op.location,
+                            [op.location],
                             'End expected `if` block, found nothing'
                         );
                     _op = program.ops[Number(_ip)];
@@ -80,7 +80,7 @@ export function crossReferenceProgram(program: Program): Program {
                         )
                     )
                         compilerError(
-                            _op.location,
+                            [_op.location],
                             'End can only end `if` or `while` blocks, found `' +
                                 _op.token.value +
                                 '`'
@@ -104,7 +104,7 @@ export function crossReferenceProgram(program: Program): Program {
                         _op.operation !== Keyword.Else
                     )
                         compilerError(
-                            op.location,
+                            [op.location],
                             'if* can only come after else'
                         );
                     else {
@@ -112,15 +112,7 @@ export function crossReferenceProgram(program: Program): Program {
                         stack.push(ip);
                     }
             }
-        } else if (op.type === OpType.SkipFn) {
-            stack.push(ip);
-        } else if (op.type === OpType.Call) {
-            try {
-                program.contracts[op.operation].used = true;
-            } catch (e) {
-                console.log(e);
-            }
-        }
+        } else if (op.type === OpType.SkipFn) stack.push(ip);
     }
 
     assert(

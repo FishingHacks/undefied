@@ -7,9 +7,8 @@ export type Loc = [string, number, number];
 
 export interface Program {
     ops: Operation[];
-    memorysize: number;
     mainop: number | undefined;
-
+    mems: Record<string, number>;
     contracts: Record<number, { ins: Type[]; outs: Type[]; used: boolean }>;
 }
 
@@ -17,13 +16,14 @@ export enum Type {
     Int,
     Bool,
     Ptr,
+    Any,
 }
 
 export enum Intrinsic {
     Print,
     Here,
     StackInfo,
-    
+
     Plus,
     Minus,
     Multiply,
@@ -35,13 +35,13 @@ export enum Intrinsic {
     GreaterThanEqual,
     Equal,
     NotEqual,
-    
+
     Drop,
     Dup,
     Over,
     Swap,
     Rot,
-    
+
     Syscall1,
     Syscall2,
     Syscall3,
@@ -57,21 +57,25 @@ export enum Intrinsic {
     Load64,
     Store64,
     Argv,
-    
+
     CastPtr,
     CastBool,
     CastInt,
+
     fakeDrop,
     fakePtr,
     fakeBool,
     fakeInt,
-    
+    fakeAny,
+
     Shl,
     Shr,
     Or,
     And,
     Not,
     Xor,
+
+    None,
 }
 
 export enum Keyword {
@@ -100,54 +104,56 @@ export enum OpType {
     Call,
     Const,
     PushAsm,
-    BindLet
+    BindLet,
+    Comment,
 }
 
-export type Operation =
+export type Operation = { location: Loc; token: Token; parameters?: string[] } & (
     | {
           type: OpType.Intrinsic;
-          location: Loc;
-          token: Token;
           operation: Intrinsic;
       }
     | {
           type: OpType.PushCString | OpType.PushString;
-          location: Loc;
-          token: Token;
           operation: string;
       }
     | {
-          type: OpType.PushInt | OpType.PushMem | OpType.Call | OpType.Ret;
-          location: Loc;
-          token: Token;
+          type: OpType.PushInt | OpType.Ret;
           operation: number;
       }
     | {
+          type: OpType.PushMem;
+          operation: string;
+      }
+    | {
+          type: OpType.Call;
+          operation: number;
+          functionName: string;
+      }
+    | {
           type: OpType.Keyword;
-          location: Loc;
           reference?: number;
-          token: Token;
           operation: Keyword;
       }
     | {
           type: OpType.PrepFn | OpType.SkipFn;
-          location: Loc;
-          token: Token;
           operation: number;
+          functionName: string;
       }
     | {
           type: OpType.Const;
           operation: number;
           _type: Type;
-          token: Token;
-          location: Loc;
-      }
+        }
     | {
           type: OpType.PushAsm;
-          location: Loc;
-          token: Token;
           operation: string;
-      };
+      }
+    | {
+          type: OpType.Comment;
+          operation: string;
+      }
+);
 
 export type Token =
     | {
@@ -158,7 +164,11 @@ export type Token =
     | {
           loc: Loc;
           value: string;
-          type: TokenType.CString | TokenType.String | TokenType.Word;
+          type:
+              | TokenType.CString
+              | TokenType.String
+              | TokenType.Word
+              | TokenType.Comment;
       };
 export enum TokenType {
     Word,
@@ -167,4 +177,15 @@ export enum TokenType {
     Integer,
     CharCode,
     None,
+    Comment,
 }
+
+export type compiler = ({
+    optimizations,
+    program,
+    filename,
+}: {
+    program: Program;
+    optimizations: '0' | '1';
+    filename?: string;
+}) => void;

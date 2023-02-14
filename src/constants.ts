@@ -1,7 +1,12 @@
-import { join } from "path";
-import { Intrinsic, Keyword, Type } from "./types";
+import { join } from 'path';
+import { Intrinsic, Keyword, Type } from './types';
 
-export const typeNames = { int: Type.Int, bool: Type.Bool, ptr: Type.Ptr };
+export const typeNames = {
+    int: Type.Int,
+    bool: Type.Bool,
+    ptr: Type.Ptr,
+    any: Type.Any,
+};
 
 export const IntrinsicNames = {
     '+': Intrinsic.Plus,
@@ -50,6 +55,7 @@ export const IntrinsicNames = {
     'fake(bool)': Intrinsic.fakeBool,
     'fake(ptr)': Intrinsic.fakePtr,
     'fake(int)': Intrinsic.fakeInt,
+    'fake(any)': Intrinsic.fakeAny,
 };
 
 export const KeywordNames = {
@@ -68,6 +74,18 @@ export const KeywordNames = {
 export const INCLUDE_DIRECTORY = join(__dirname, '../std');
 
 export const INFO = {
-    version: '1.2.0',
-    name: 'Undefied'
+    name: 'Undefied',
+    versionDetailed: {
+        major: 1,
+        minor: 2,
+        patchLevel: 0,
+    },
+    version: '',
 } as const;
+
+Reflect.defineProperty(INFO, 'version', {
+    set: (v) => {},
+    get() {
+        return `${INFO.versionDetailed.major}.${INFO.versionDetailed.minor}.${INFO.versionDetailed.patchLevel}`;
+    },
+});

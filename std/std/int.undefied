@@ -1,13 +1,27 @@
 include "values"
 
-fn / int int -- int in /% drop end
-fn % int int -- int in /% swap drop end
-fn div int int -- int in /% drop end
-fn mod int int -- int in /% swap drop end
-fn @int ptr -- int in @64 end
-fn !int int ptr in swap !64 end
+.ifdef / undef / .end
+.ifdef % undef % .end
+.ifdef div undef div .end
+.ifdef mod undef mod .end
+.ifdef @int undef @int .end
+.ifdef !int undef !int .end
+.ifdef gethexcc undef gethexcc .end
+.ifdef hexToStr undef hexToStr .end
+.ifdef decToStr undef decToStr .end
+.ifdef binToStr undef binToStr .end
+.ifdef pb_tmp_store .error "pb_tmp_store is already defined :c" .end
+.ifdef pd_tmp_store .error "pd_tmp_store is already defined :c" .end
+.ifdef ph_tmp_store .error "ph_tmp_store is already defined :c" .end
 
-fn gethexcc int -- int in
+inline fn / int int -- int in /% drop end
+inline fn % int int -- int in /% swap drop end
+inline fn div int int -- int in /% drop end
+inline fn mod int int -- int in /% swap drop end
+inline fn @int ptr -- int in @64 end
+inline fn !int int ptr in swap !64 end
+
+inline fn gethexcc int -- int in
     dup 10 < if '0' +
     else 'a' + 10 - end 
 end
@@ -47,6 +61,7 @@ drop dup 32 swap - pd_tmp_store cast(int) rot rot + cast(ptr)
 end
 
 memory pb_tmp_store 64 end
+
 fn binToStr int -- ptr int in 
 dup 1 < if drop "0" return end
 31 swap

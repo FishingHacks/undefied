@@ -6,19 +6,22 @@
 └┴┘
 
 
-┌──« Undefied CLI »────────────────┬────────────────────────────────────┐
-│ undefied <option>                │                                    │
-│           -> -h --help           │ Get Help                           │
-│           -> -v --version        │ Get the Current Version            │
-├──────────────────────────────────┼────────────────────────────────────┤
-│ undefied compile file <options>  │ Compile your Program               │
-│           -> -r --run            │ Run the Program after Compilation  │
-│           -> -u --unsafe         │ Disable Typechecking               │
-│           -> -O0                 │ Disable Optimizations              │
-│           -> -O1                 │ Level 1 Optimizations              │
-├──────────────────────────────────┼────────────────────────────────────┤
-│ undefied typecheck <options>     │ Typecheck your Program             │
-└──« Version vxx.x.x  »────────────┴────────────────────────────────────┘
+┌──« Undefied CLI »──────────────────┬────────────────────────────────────┐
+│ undefied <option>                  │                                    │
+│           -> -h --help             │ Get Help                           │
+│           -> -v --version          │ Get the Current Version            │
+├────────────────────────────────────┼────────────────────────────────────┤
+│ undefied compile file <options>    │ Compile your Program               │
+│           -> -r --run              │ Run the Program after Compilation  │
+│           -> -u --unsafe           │ Disable Typechecking               │
+│           -> -O0                   │ Disable Optimizations              │
+│           -> -O1                   │ Level 1 Optimizations              │
+│           -> --keep                │ Keep the assembly files            │
+│           -> -t --target <target>  │ Select the target                  |
+|           -> -d --dev              │ Enable devmode                     │
+├────────────────────────────────────┼────────────────────────────────────┤
+│ undefied typecheck <options>       │ Typecheck your Program             │
+└──« Version vxx.x.x  »──────────────┴────────────────────────────────────┘
 */
 
 import chalk from 'chalk';
@@ -62,7 +65,20 @@ export default function helpMenu(version: string) {
         )}              │\n` +
         `│           -> ${chalk.blue(
             '-O1'
-        )}                   │ Level 1 Optimizations              │\n` +
+        )}                   │ ${chalk.underline(
+            'Level 1 Optimizations'
+        )}              │\n` +
+        `│           -> ${chalk.blue(
+            '--keep'
+        )}                │ ${chalk.underline(
+            'Keep the assembly files'
+        )}            │\n` +
+        `│           -> ${chalk.blue('-t --target')} ${chalk.gray(
+            '<target>'
+        )}  │ ${chalk.underline('Select the target')}                  |\n` +
+        `│           -> ${chalk.blue(
+            '-d --dev'
+        )}              │ Enable devmode                     │\n` +
         `├────────────────────────────────────┼────────────────────────────────────┤\n` +
         `│ ${chalk.cyan('undefied')} ${chalk.greenBright(
             'typecheck'
@@ -75,6 +91,9 @@ export default function helpMenu(version: string) {
         )}                 │ Typecheck the Standard Library     │\n` +
         `└──« Version v${version}  »${
             version.length === 5 ? '─' : ''
-        }──────────────┴────────────────────────────────────┘`
+        }──────────────┴────────────────────────────────────┘\n\n` +
+        chalk.bold(chalk.red('Available Targets')) + '\n' +
+        'linux\n' +
+        'linux-macro'
     );
 }

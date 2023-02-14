@@ -1,8 +1,29 @@
-include "std/lnx/io"
+include "std/target"
+.if __TARGET_LINUX_SUPPORT__ include "std/lnx/io" .end
+
 include "std/int"
 
-fn puts ptr int in FD_stdio fputs end
-fn eputs ptr int in FD_stdio fputs end
+
+.ifndef FD_stdio const FD_stdio 0 end .end
+.ifndef FD_stderr const FD_stderr 1 end .end
+.ifndef fputs .error "No fputs implementation for the current target found" .end
+
+.ifdef puts undef puts .end
+.ifdef eputs undef eputs .end
+.ifdef printCharCode undef printCharCode .end
+.ifdef fputu undef fputu .end
+.ifdef putu undef putu .end
+.ifdef eputu undef eputu .end
+.ifdef fputx undef fputx .end
+.ifdef putx undef putx .end
+.ifdef eputx undef eputx .end
+.ifdef fputb undef fputb .end
+.ifdef putb undef putb .end
+.ifdef eputb undef eputb .end
+.ifdef pcc_mem undef pcc_mem .end
+
+inline fn puts ptr int in FD_stdio fputs end
+inline fn eputs ptr int in FD_stderr fputs end
 
 memory pcc_mem 1 end
 fn printCharCode int in

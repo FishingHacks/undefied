@@ -1,8 +1,13 @@
 include "values"
 include "std/ptr"
 
-memory data sizeof(ptr) end
-memory byte sizeof(u64) end
+.ifdef std_memory_data .error "std_memory_data is already defined :c" .end
+.ifdef std_memory_byte .error "std_memory_byte is already defined :c" .end
+
+.ifdef memset undef memset .end
+
+memory std_memory_data sizeof(ptr) end
+memory std_memory_byte sizeof(u64) end
 
 fn memset
   ptr # data
@@ -11,12 +16,12 @@ fn memset
   --
   ptr # data
 in
-  cast(int) data !64
-  byte !64
-  data @ptr swap
+  cast(int) std_memory_data !64
+  std_memory_byte !64
+  std_memory_data @ptr swap
   while
-    byte @64 data @ptr !
-    data inc64
+    std_memory_byte @64 std_memory_data @ptr !
+    std_memory_data inc64
     1 -
     dup 1 < if drop 0 end 
   end

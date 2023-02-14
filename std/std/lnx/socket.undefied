@@ -1,8 +1,61 @@
+include "./use-lnx"
 include "values"
 include "std/lnx/syscalls"
 include "std/io"
 include "std/ptr"
 include "std/byteswap"
+
+.ifdef AF_UNIX undef AF_UNIX .end
+.ifdef AF_LOCAL undef AF_LOCAL .end
+.ifdef AF_INET undef AF_INET .end
+.ifdef AF_AX25 undef AF_AX25 .end
+.ifdef AF_IPX undef AF_IPX .end
+.ifdef AF_APPLETALK undef AF_APPLETALK .end
+.ifdef AF_X25 undef AF_X25 .end
+.ifdef AF_INET6 undef AF_INET6 .end
+.ifdef AF_DECnet undef AF_DECnet .end
+.ifdef AF_KEY undef AF_KEY .end
+.ifdef AF_NETLINK undef AF_NETLINK .end
+.ifdef AF_PACKET undef AF_PACKET .end
+.ifdef AF_RDS undef AF_RDS .end
+.ifdef AF_PPPOX undef AF_PPPOX .end
+.ifdef AF_LLC undef AF_LLC .end
+.ifdef AF_IB undef AF_IB .end
+.ifdef AF_MPLS undef AF_MPLS .end
+.ifdef AF_CAN undef AF_CAN .end
+.ifdef AF_TIPC undef AF_TIPC .end
+.ifdef AF_BLUETOOTH undef AF_BLUETOOTH .end
+.ifdef AF_ALG undef AF_ALG .end
+.ifdef AF_VSOCK undef AF_VSOCK .end
+.ifdef AF_KCM undef AF_KCM .end
+.ifdef AF_XDP undef AF_XDP .end
+.ifdef SOCK_STREAM undef SOCK_STREAM .end
+.ifdef SOCK_DGRAM undef SOCK_DGRAM .end
+.ifdef SOCK_RAW undef SOCK_RAW .end
+.ifdef SOCK_RDM undef SOCK_RDM .end
+.ifdef SOCK_SEQPACKET undef SOCK_SEQPACKET .end
+.ifdef SOCK_PACKET undef SOCK_PACKET .end
+.ifdef SOCK_NONBLOCK undef SOCK_NONBLOCK .end
+.ifdef SOCK_CLOEXEC undef SOCK_CLOEXEC .end
+.ifdef socket undef socket .end
+.ifdef INADDR_LOCAL undef INADDR_LOCAL .end
+.ifdef sizeof(sockaddr) undef sizeof(sockaddr) .end
+.ifdef sockaddr_in.sin_family undef sockaddr_in.sin_family .end
+.ifdef sockaddr_in.sin_port undef sockaddr_in.sin_port .end
+.ifdef sockaddr_in.sin_addr undef sockaddr_in.sin_addr .end
+.ifdef sizeof(sockaddr_in.sin_family) undef sizeof(sockaddr_in.sin_family) .end
+.ifdef sizeof(sockaddr_in.sin_port) undef sizeof(sockaddr_in.sin_port) .end
+.ifdef sizeof(sockaddr_in.sin_addr) undef sizeof(sockaddr_in.sin_addr) .end
+.ifdef listen undef listen .end
+.ifdef bind undef bind .end
+.ifdef accept undef accept .end
+.ifdef read undef read .end
+.ifdef close undef close .end
+.ifdef sendto undef sendto .end
+.ifdef send undef send .end
+.ifdef htons undef htons .end
+
+.ifdef tmp_send_mem .error "tmp_send_mem is already defined :c" .end
 
 const AF_UNIX 1 end
 const AF_LOCAL AF_UNIX end
@@ -71,13 +124,6 @@ fn send int ptr int int -- int in
   cast(int) tmp_send_mem sizeof(u64) 1 * ptr+ !64
   cast(int) tmp_send_mem sizeof(u64) 2 * ptr+ !64
   cast(int) tmp_send_mem sizeof(u64) 0 * ptr+ !64
-  "Sending to fd " puts
-  tmp_send_mem sizeof(u64) 0 * ptr+ @64 putu
-  "\n---\n\n" puts
-  tmp_send_mem sizeof(u64) 2 * ptr+ @64 cast(int)
-  tmp_send_mem sizeof(u64) 1 * ptr+ @64 cast(ptr)
-  puts
-  "\n---\n\n" puts
   0 nullptr
   tmp_send_mem sizeof(u64) 3 * ptr+ @64 cast(int)
   tmp_send_mem sizeof(u64) 2 * ptr+ @64 cast(int)

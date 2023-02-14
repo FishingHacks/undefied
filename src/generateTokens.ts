@@ -3,7 +3,7 @@ import { compilerError } from './errors';
 import { parseHexValue, parseOctalValue, parseBinValue } from './numberParser';
 import { Loc, Token, TokenType } from './types';
 
-export async function generateTokens(file: string) {
+export async function generateTokens(file: string, dev: boolean) {
     const lines = (await readFile(file))
         .toString()
         .split('\n')
@@ -24,8 +24,14 @@ export async function generateTokens(file: string) {
             const c = Number(j);
             const character = line[c];
 
-            if (character === '#') break;
-            else if (
+            if (character === '#') {
+                tokens.push({
+                    loc: [file, l + 1, c + 1],
+                    value: characters.slice(1).join(''),
+                    type: TokenType.Comment,
+                });
+                break;
+            } else if (
                 character === ' ' &&
                 type !== TokenType.String &&
                 type !== TokenType.CharCode
@@ -46,14 +52,14 @@ export async function generateTokens(file: string) {
                                 value: num,
                             });
                         else tokens.push({ loc: location, type, value });
-                    } else compilerError(location, 'unreachable');
+                    } else compilerError([location], 'unreachable');
                 }
                 type = TokenType.None;
                 value = '';
             } else if (character === '"') {
                 if (type !== TokenType.None && type !== TokenType.String)
                     compilerError(
-                        [file, l + 1, c + 1],
+                        [[file, l + 1, c + 1]],
                         '`"` in a non-string definition'
                     );
                 else if (type === TokenType.None) {
@@ -71,7 +77,7 @@ export async function generateTokens(file: string) {
             } else if (character === "'") {
                 if (type !== TokenType.None && type !== TokenType.CharCode)
                     compilerError(
-                        [file, l + 1, c + 1],
+                        [[file, l + 1, c + 1]],
                         '`"` in a non-string definition'
                     );
                 else if (type === TokenType.None) {
@@ -79,7 +85,7 @@ export async function generateTokens(file: string) {
                     type = TokenType.CharCode;
                 } else if (value.length > 1)
                     compilerError(
-                        location,
+                        [location],
                         'A Character literal can only have 1 character'
                     );
                 else {
@@ -140,8 +146,9 @@ export async function generateTokens(file: string) {
             });
         else if (type === TokenType.Word)
             tokens.push({ loc: location, type, value });
-        else compilerError(location, 'Error: Expected `"`, found nothing');
+        else compilerError([location], 'Error: Expected `"`, found nothing');
     }
+    
     return tokens;
 }
 
@@ -178,8 +185,7 @@ export function escapeStr(str: string): string {
         if (escaping) {
             _str += translationMatrix[c as keyof typeof translationMatrix] || c;
             escaping = false;
-        }
-        else if (c === '\\') escaping = true;
+        } else if (c === '\\') escaping = true;
         else _str += c;
     }
 

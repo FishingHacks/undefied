@@ -1,6 +1,12 @@
 include "std/io"
-include "std/lnx/syscalls"
+include "std/target"
+.if __TARGET_LINUX_SUPPORT__ include "std/lnx/syscalls" .end
 
-fn panic ptr int in
-"PANIC: " eputs eputs "\n" eputs 1 SC_exit
-end
+.ifndef SC_exit .error "No exit syscall function defined" .end
+
+.ifdef panic .warn "panic is already defined, the std lib now uses the new implementation. If the new implementation does not take ptr int as ins and exits, this will cause issues." .end
+.ifndef panic
+    inline fn panic ptr int in
+    "PANIC: " eputs eputs "\n" eputs 1 SC_exit
+    end
+.end

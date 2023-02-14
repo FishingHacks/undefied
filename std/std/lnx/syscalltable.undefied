@@ -1,3 +1,6 @@
+include "./use-lnx"
+include "./undef-syscalltable"
+
 const SYS_read 0 end
 const SYS_write 1 end
 const SYS_open 2 end
