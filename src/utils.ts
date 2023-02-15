@@ -4,7 +4,8 @@ import { spawnSync } from 'child_process';
 import { constants, existsSync, lstatSync } from 'fs';
 import { access, lstat } from 'fs/promises';
 import { error, info } from './errors';
-import { Loc, TokenType, Type } from './types';
+import { timer } from './timer';
+import { Loc, Operation, TokenType, Type } from './types';
 
 export function humanTokenType(type: TokenType) {
     if (type === TokenType.CString) return 'CString';
@@ -44,8 +45,10 @@ export function checkExistence(
 }
 
 export function cmd_echoed(cmd: string, name?: string) {
+    const end = timer.start('[CMD]: ' + name || cmd);
     info('[CMD]: Running ' + cmd);
     const proc = spawnSync(cmd, { shell: true });
+    end();
     if (proc.stderr.length > 0)
         proc.stderr
             .toString('utf-8')
@@ -87,4 +90,14 @@ export function humanLocation(location: Loc) {
 export function arrayify<T>(value: T | T[]): T[] {
     if (value instanceof Array) return value;
     return [value];
+}
+export function hasParameter(
+    op: Operation | undefined,
+    parameter: string | string[]
+): boolean {
+    parameter = arrayify(parameter);
+    if (!op) return false;
+    else if (!op.parameters) return false;
+    for (const p of parameter) if (op.parameters.includes(p)) return true;
+    return false;
 }

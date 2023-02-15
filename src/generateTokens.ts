@@ -1,9 +1,11 @@
 import { readFile } from 'fs/promises';
 import { compilerError } from './errors';
 import { parseHexValue, parseOctalValue, parseBinValue } from './numberParser';
+import { timer } from './timer';
 import { Loc, Token, TokenType } from './types';
 
 export async function generateTokens(file: string, dev: boolean) {
+    const end = timer.start('generateTokens()');
     const lines = (await readFile(file))
         .toString()
         .split('\n')
@@ -148,7 +150,7 @@ export async function generateTokens(file: string, dev: boolean) {
             tokens.push({ loc: location, type, value });
         else compilerError([location], 'Error: Expected `"`, found nothing');
     }
-    
+    end();
     return tokens;
 }
 

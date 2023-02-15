@@ -5,11 +5,22 @@ export type TypeCheckStack = {
 
 export type Loc = [string, number, number];
 
+export interface Contract {
+    ins: Type[];
+    outs: Type[];
+    used: boolean;
+    prep: Operation;
+    skip: Operation;
+    name: string;
+    index: number;
+}
+
 export interface Program {
     ops: Operation[];
     mainop: number | undefined;
     mems: Record<string, number>;
-    contracts: Record<number, { ins: Type[]; outs: Type[]; used: boolean }>;
+    contracts: Record<number, Contract>;
+    functionsToRun: number[];
 }
 
 export enum Type {
@@ -108,7 +119,12 @@ export enum OpType {
     Comment,
 }
 
-export type Operation = { location: Loc; token: Token; parameters?: string[] } & (
+export type Operation = {
+    location: Loc;
+    token: Token;
+    parameters?: string[];
+    ip: number;
+} & (
     | {
           type: OpType.Intrinsic;
           operation: Intrinsic;
@@ -118,8 +134,13 @@ export type Operation = { location: Loc; token: Token; parameters?: string[] } &
           operation: string;
       }
     | {
-          type: OpType.PushInt | OpType.Ret;
+          type: OpType.PushInt;
           operation: number;
+      }
+    | {
+          type: OpType.Ret;
+          operation: number;
+          functionEnd: boolean;
       }
     | {
           type: OpType.PushMem;
@@ -144,7 +165,7 @@ export type Operation = { location: Loc; token: Token; parameters?: string[] } &
           type: OpType.Const;
           operation: number;
           _type: Type;
-        }
+      }
     | {
           type: OpType.PushAsm;
           operation: string;
@@ -180,12 +201,10 @@ export enum TokenType {
     Comment,
 }
 
-export type compiler = ({
-    optimizations,
-    program,
-    filename,
-}: {
+export type compiler = (value: {
     program: Program;
     optimizations: '0' | '1';
     filename?: string;
+    external?: string[];
+    dontRunFunctions?: boolean;
 }) => void;

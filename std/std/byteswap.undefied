@@ -2,11 +2,9 @@
 .ifdef bswap32 undef bswap32 .end
 .ifdef bswap64 undef bswap64 .end
 
-
-
 inline fn bswap16 int -- int in
     .if __TARGET_LINUX_SUPPORT__
-            .ifdef __defined undef __defined .end
+        .ifdef __defined undef __defined .end
         const __defined 1 end
         .param __supports_linux__
         assembly
@@ -21,7 +19,7 @@ end
 
 inline fn bswap32 int -- int in
     .if __TARGET_LINUX_SUPPORT__
-            .ifdef __defined undef __defined .end
+        .ifdef __defined undef __defined .end
         const __defined 1 end
         .param __supports_linux__
         assembly
@@ -36,7 +34,7 @@ end
 
 inline fn bswap64 int -- int in
     .if __TARGET_LINUX_SUPPORT__
-            .ifdef __defined undef __defined .end
+        .ifdef __defined undef __defined .end
         const __defined 1 end
         .param __supports_linux__
         assembly

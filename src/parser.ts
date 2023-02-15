@@ -17,8 +17,23 @@ import {
     compilerInfo,
 } from './errors';
 import { generateTokens, makeNumber } from './generateTokens';
-import { Loc, TokenType, OpType, Type, Token, Program } from './types';
-import { checkExistence, humanTokenType, humanType, valid } from './utils';
+import { timer } from './timer';
+import {
+    Loc,
+    TokenType,
+    OpType,
+    Type,
+    Token,
+    Program,
+    Operation,
+} from './types';
+import {
+    checkExistence,
+    hasParameter,
+    humanTokenType,
+    humanType,
+    valid,
+} from './utils';
 
 export async function parseProgram(
     tokens: Token[],
@@ -26,6 +41,7 @@ export async function parseProgram(
     predefConsts: Record<string, number>,
     dev: boolean
 ): Promise<Program> {
+    const end = timer.start('parseProgram()');
     const functions: Record<string, number> = {};
     const structs: Record<string, { name: string; type: Type[] }[]> = {};
     const program: Program = {
@@ -33,6 +49,7 @@ export async function parseProgram(
         mems: {},
         contracts: {},
         mainop: undefined,
+        functionsToRun: [],
     };
     function val(value: number) {
         return { type: Type.Int, value };
@@ -267,6 +284,7 @@ export async function parseProgram(
                 location: token.loc,
                 token,
                 operation: token.value,
+                ip: program.ops.length,
             });
         else if (
             !isInFunction &&
@@ -280,6 +298,7 @@ export async function parseProgram(
                 token,
                 operation: token.value,
                 type: OpType.PushCString,
+                ip: program.ops.length,
             });
         else if (token.type === TokenType.String)
             program.ops.push({
@@ -287,6 +306,7 @@ export async function parseProgram(
                 token,
                 operation: token.value,
                 type: OpType.PushString,
+                ip: program.ops.length,
             });
         else if (token.type === TokenType.Integer)
             program.ops.push({
@@ -294,6 +314,7 @@ export async function parseProgram(
                 token,
                 operation: token.value,
                 type: OpType.PushInt,
+                ip: program.ops.length,
             });
         else if (token.type === TokenType.Word && token.value === 'memory') {
             ip++;
@@ -558,6 +579,25 @@ export async function parseProgram(
                 macros[name.value] = toks;
             }
 
+            if (!inlineNextFunction) {
+                if (
+                    nextParams.includes('__run_function__') &&
+                    (outs.length > 0 || ins.length > 0)
+                )
+                    compilerError(
+                        [token.loc],
+                        'A function with __run_function__ has to have no ins and outs'
+                    );
+                if (
+                    nextParams.includes('__run_function__') &&
+                    nextParams.includes('__provided_externally__')
+                )
+                    compilerError(
+                        [token.loc],
+                        "A function with __run_function__ can't be supplied from an external source"
+                    );
+            }
+
             if (!inlineNextFunction)
                 program.ops.push({
                     location: token.loc,
@@ -566,6 +606,7 @@ export async function parseProgram(
                     type: OpType.SkipFn,
                     functionName: name.value.toString(),
                     parameters: nextParams,
+                    ip: program.ops.length,
                 });
 
             if (name.value === 'main' && !inlineNextFunction) {
@@ -587,20 +628,33 @@ export async function parseProgram(
                 program.mainop = program.ops.length;
             }
             if (!inlineNextFunction) {
-                program.contracts[program.ops.length] = {
-                    ins,
-                    outs,
-                    used: name.value === 'main',
-                };
-                functions[name.value] = program.ops.length;
-                program.ops.push({
+                const prep: Operation = {
                     location: token.loc,
                     token,
                     operation: 0,
                     type: OpType.PrepFn,
                     functionName: name.value.toString(),
                     parameters: nextParams,
-                });
+                    ip: program.ops.length,
+                };
+                program.contracts[program.ops.length] = {
+                    ins,
+                    outs,
+                    used:
+                        name.value === 'main' ||
+                        nextParams.includes('__run_function__'),
+                    prep,
+                    skip: program.ops[program.ops.length - 1],
+                    name: name.value,
+                    index: program.ops.length,
+                };
+                if (
+                    nextParams.includes('__run_function__') &&
+                    !program.functionsToRun.includes(program.ops.length)
+                )
+                    program.functionsToRun.push(program.ops.length);
+                functions[name.value] = program.ops.length;
+                program.ops.push(prep);
             }
             nextParams = [];
             inlineNextFunction = false;
@@ -619,75 +673,83 @@ export async function parseProgram(
                 );
 
             const file = join(token.loc[0], '..');
-            const files = [
-                valid(
-                    !path.value.toString().startsWith('./'),
-                    join(
-                        INCLUDE_DIRECTORY,
-                        path.value +
-                            (path.value.toString().endsWith('.undefied')
-                                ? ''
-                                : '.undefied')
-                    )
-                ),
-                valid(
-                    !path.value.toString().startsWith('./'),
-                    join(
-                        process.cwd(),
-                        'modules',
-                        path.value +
-                            (path.value.toString().endsWith('.undefied')
-                                ? ''
-                                : '.undefied')
-                    )
-                ),
-                valid(
-                    !path.value.toString().startsWith('./') &&
-                        !path.value.toString().endsWith('.undefied'),
-                    join(
-                        process.cwd(),
-                        'modules',
-                        path.value.toString(),
-                        'main.undefied'
-                    )
-                ),
-                valid(
-                    !path.value.toString().startsWith('./'),
-                    join(
-                        file,
-                        'modules',
-                        path.value +
-                            (path.value.toString().endsWith('.undefied')
-                                ? ''
-                                : '.undefied')
-                    )
-                ),
-                valid(
-                    !path.value.toString().startsWith('./') &&
-                        !path.value.toString().endsWith('.undefied'),
-                    join(
-                        file,
-                        'modules',
-                        path.value.toString(),
-                        'main.undefied'
-                    )
-                ),
-                valid(
-                    path.value.toString().startsWith('./'),
-                    join(
-                        file,
-                        path.value +
-                            (path.value.toString().endsWith('.undefied')
-                                ? ''
-                                : '.undefied')
-                    )
-                ),
-                valid(
-                    path.value.toString().startsWith('./') &&
-                        !path.value.toString().endsWith('.undefied'),
-                    join(file, path.value.toString(), 'main.undefied')
-                ),
-            ];
+            const files = path.value.startsWith('/')
+                ? [
+                      valid(
+                          !path.value.endsWith('.undefied'),
+                          path.value + '.undefied'
+                      ),
+                      path.value,
+                  ]
+                : [
+                      valid(
+                          !path.value.toString().startsWith('./'),
+                          join(
+                              INCLUDE_DIRECTORY,
+                              path.value +
+                                  (path.value.toString().endsWith('.undefied')
+                                      ? ''
+                                      : '.undefied')
+                          )
+                      ),
+                      valid(
+                          !path.value.toString().startsWith('./'),
+                          join(
+                              process.cwd(),
+                              'modules',
+                              path.value +
+                                  (path.value.toString().endsWith('.undefied')
+                                      ? ''
+                                      : '.undefied')
+                          )
+                      ),
+                      valid(
+                          !path.value.toString().startsWith('./') &&
+                              !path.value.toString().endsWith('.undefied'),
+                          join(
+                              process.cwd(),
+                              'modules',
+                              path.value.toString(),
+                              'main.undefied'
+                          )
+                      ),
+                      valid(
+                          !path.value.toString().startsWith('./'),
+                          join(
+                              file,
+                              'modules',
+                              path.value +
+                                  (path.value.toString().endsWith('.undefied')
+                                      ? ''
+                                      : '.undefied')
+                          )
+                      ),
+                      valid(
+                          !path.value.toString().startsWith('./') &&
+                              !path.value.toString().endsWith('.undefied'),
+                          join(
+                              file,
+                              'modules',
+                              path.value.toString(),
+                              'main.undefied'
+                          )
+                      ),
+                      valid(
+                          path.value.toString().startsWith('./'),
+                          join(
+                              file,
+                              path.value +
+                                  (path.value.toString().endsWith('.undefied')
+                                      ? ''
+                                      : '.undefied')
+                          )
+                      ),
+                      valid(
+                          path.value.toString().startsWith('./') &&
+                              !path.value.toString().endsWith('.undefied'),
+                          join(file, path.value.toString(), 'main.undefied')
+                      ),
+                  ];
             const importFile = checkExistence(...files);
             if (!importFile)
                 compilerError(
@@ -1013,6 +1075,7 @@ export async function parseProgram(
                     location: token.loc,
                     token,
                     operation: str,
+                    ip: program.ops.length,
                 });
             }
             comment(' struct ' + name.value + ' {');
@@ -1031,6 +1094,8 @@ export async function parseProgram(
                 location: token.loc,
                 operation: 1,
                 token,
+                ip: program.ops.length,
+                functionEnd: false,
             });
         } else if (
             token.type === TokenType.Word &&
@@ -1078,6 +1143,7 @@ export async function parseProgram(
                     token,
                     operation: value,
                     parameters: nextParams,
+                    ip: program.ops.length,
                 });
             nextParams = [];
         } else if (token.type === TokenType.Word && token.value === 'inline') {
@@ -1300,6 +1366,7 @@ export async function parseProgram(
                             token.value as keyof typeof IntrinsicNames
                         ],
                     type: OpType.Intrinsic,
+                    ip: program.ops.length,
                 });
             else if (
                 KeywordNames[token.value as keyof typeof KeywordNames] !==
@@ -1314,6 +1381,7 @@ export async function parseProgram(
                     operation:
                         KeywordNames[token.value as keyof typeof KeywordNames],
                     type: OpType.Keyword,
+                    ip: program.ops.length,
                 });
             } else if (program.mems[token.value] !== undefined)
                 program.ops.push({
@@ -1321,6 +1389,7 @@ export async function parseProgram(
                     token,
                     type: OpType.PushMem,
                     operation: token.value,
+                    ip: program.ops.length,
                 });
             else if (functions[token.value] !== undefined)
                 program.ops.push({
@@ -1329,6 +1398,7 @@ export async function parseProgram(
                     type: OpType.Call,
                     operation: functions[token.value],
                     functionName: token.value,
+                    ip: program.ops.length,
                 });
             else if (constants[token.value] !== undefined)
                 program.ops.push({
@@ -1337,6 +1407,7 @@ export async function parseProgram(
                     location: token.loc,
                     token,
                     type: OpType.Const,
+                    ip: program.ops.length,
                 });
             else if (macros[token.value] !== undefined) {
                 program.ops.push({
@@ -1344,6 +1415,7 @@ export async function parseProgram(
                     operation: ' InlineCall (' + token.value + ')',
                     location: token.loc,
                     token,
+                    ip: program.ops.length,
                 });
                 tokens = [
                     ...macros[token.value],
@@ -1363,5 +1435,7 @@ export async function parseProgram(
         }
         ip++;
     }
+
+    end();
     return program;
 }

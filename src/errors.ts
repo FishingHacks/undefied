@@ -87,14 +87,17 @@ export function doesntmatchTT(
     expectedTT(loc, type, specified);
     expectedChars(loc, value, specifiedValue);
 }
-export function error(err: string): never {
-    console.error(chalk.redBright('Error: ' + err));
+export function error(err: string, ...values: any[]): never {
+    console.error(chalk.redBright('Error: ' + format(err, ...values)));
     console.log('\n' + INFO.name + ' v' + INFO.version);
     process.exit(1);
 }
-export function warn(warn: string) {
-    console.warn(chalk.yellow('Warn: ' + warn));
+export function warn(warn: string, ...values: any[]) {
+    console.warn(chalk.yellow('Warn: ' + format(warn, ...values)));
 }
-export function info(info: string) {
-    console.warn(chalk.cyan('Info: ' + info));
+export function info(info: string, ...values: any[]) {
+    console.log(chalk.cyan('Info: ' + format(info, ...values)));
+}
+export function success(success: string, ...values: any[]) {
+    console.log(chalk.green('Success: ' + format(success, ...values)));
 }

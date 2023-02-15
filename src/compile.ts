@@ -3,9 +3,11 @@ import { open } from 'fs/promises';
 import { join } from 'path';
 import { format } from 'util';
 import { compilerError, compilerWarn } from './errors';
-import { OpType, Keyword, Type, Intrinsic, Program, compiler } from './types';
-import { cmd_echoed, humanLocation, humanType } from './utils';
+import { OpType, Keyword, Type, Intrinsic, Program } from './types';
+import { cmd_echoed, hasParameter, humanLocation, humanType } from './utils';
 import * as crypto from 'crypto';
+import chalk from 'chalk';
+import { timer } from './timer';
 
 function generateStringName(str: string): string {
     return crypto.randomUUID().replaceAll('-', '');
@@ -15,17 +17,22 @@ export async function compile({
     optimizations,
     program,
     filename,
+    dontRunFunctions = false,
+    external = [],
 }: {
     program: Program;
     optimizations: '0' | '1';
     filename?: string;
+    external?: string[];
+    dontRunFunctions?: boolean;
 }) {
+    const end = timer.start('compile() for target `linux`');
     const strings: [string, string][] = [];
     const defs: string[] = [];
-    
+
     function getId(name: string) {
         defs.push(name);
-        return defs.filter(el => el === name).length;
+        return defs.filter((el) => el === name).length;
     }
 
     function getStringId(str: string) {
@@ -58,6 +65,7 @@ export async function compile({
     }
 
     if (!program.mainop) {
+        const asmend = timer.start('writing assembly');
         await write('BITS 64\n');
         await write('segment .text\n');
         await write('global _start\n');
@@ -76,6 +84,8 @@ export async function compile({
             'str_nomain: db 0x50,0x41,0x4e,0x49,0x43,0x3a,0x20,0x4e,0x6f,0x20,0x6d,0x61,0x69,0x6e,0x20,0x66,0x75,0x6e,0x63,0x74,0x69,0x6f,0x6e,0x20,0x64,0x65,0x66,0x69,0x6e,0x65,0x64,0x21,0xa\n'
         ); // UTF-16 for 'No main function defined!\n'
 
+        asmend();
+
         await out.close();
         cmd_echoed(
             `nasm -felf64 -o "${filename.replaceAll(
@@ -89,11 +99,15 @@ export async function compile({
                 '\\"'
             )}.o"`
         );
+        end();
         return;
     }
 
     //#region printfunc
     if (optimizations === '0') {
+        const functionMetadataGenEnd = timer.start(
+            'included functions comment metadata generation'
+        );
         await write(';; Included Functions:\n');
         for (const [op, { ins, outs, used }] of Object.entries(
             program.contracts
@@ -119,8 +133,36 @@ export async function compile({
             else await write(outs.map(humanType).join(', '));
             await write('\n\n');
         }
+        functionMetadataGenEnd();
     }
 
+    const addrLabelCollectionEnd = timer.start('address label collection');
+    const req_addrs: number[] = [program.mainop, ...program.functionsToRun];
+    for (const ip in program.ops) {
+        const op = program.ops[ip];
+        if (op.type === OpType.Keyword) {
+            if (
+                [
+                    Keyword.If,
+                    Keyword.Else,
+                    Keyword.While,
+                    Keyword.IfStar,
+                ].includes(op.operation)
+            ) {
+                if (!op.reference)
+                    return compilerError(
+                        [op.location],
+                        'Error: Reference to end not defined (forgot to run crossReferenceProgram?)'
+                    );
+                req_addrs.push(op.reference);
+            } else if (op.operation === Keyword.End && op.reference)
+                req_addrs.push(op.reference);
+        } else if (op.type === OpType.SkipFn) req_addrs.push(op.operation);
+        else if (op.type === OpType.Call) req_addrs.push(op.operation);
+    }
+    addrLabelCollectionEnd();
+
+    const printAsmEnd = timer.start('writing assembly for print');
     await write('BITS 64\n');
     await write('segment .text\n');
     await write('print:\n');
@@ -162,33 +204,13 @@ export async function compile({
     await write('    mov rax, ret_stack_end\n');
     await write('    mov [ret_stack_rsp], rax\n');
     //#endregion printfunc
+    printAsmEnd();
 
-    const req_addrs: number[] = [program.mainop];
-    for (const ip in program.ops) {
-        const op = program.ops[ip];
-        if (op.type === OpType.Keyword) {
-            if (
-                [
-                    Keyword.If,
-                    Keyword.Else,
-                    Keyword.While,
-                    Keyword.IfStar,
-                ].includes(op.operation)
-            ) {
-                if (!op.reference)
-                    return compilerError(
-                        [op.location],
-                        'Error: Reference to end not defined (forgot to run crossReferenceProgram?)'
-                    );
-                req_addrs.push(op.reference);
-            } else if (op.operation === Keyword.End && op.reference)
-                req_addrs.push(op.reference);
-        } else if (op.type === OpType.SkipFn) req_addrs.push(op.operation);
-        else if (op.type === OpType.Call) req_addrs.push(op.operation);
-    }
-
-    for (const ip in program.ops) {
-        const op = program.ops[ip];
+    const asmEnd = timer.start('writing assembly');
+    let ip = -1;
+    while (ip < program.ops.length) {
+        const op = program.ops[++ip];
+        if (!op) break;
         if (req_addrs.includes(Number(ip))) await write('addr_%d:\n', ip);
 
         if (op.type === OpType.PushString) {
@@ -252,9 +274,13 @@ export async function compile({
         else if (op.type === OpType.SkipFn) {
             if (!op.operation || isNaN(op.operation))
                 compilerError([op.location], 'Error: No end-block found!');
-            await write('    ;; skip fn ' + op.functionName);
-            await write('\n');
-            await write('    jmp addr_%d\n', op.operation);
+            if (op.parameters?.includes('__provided_externally__'))
+                ip = op.operation - 1;
+            else {
+                await write('    ;; skip fn ' + op.functionName);
+                await write('\n');
+                await write('    jmp addr_%d\n', op.operation);
+            }
         } else if (op.type === OpType.PrepFn) {
             await write(`${op.functionName}_${getId(op.functionName)}:\n`);
             await write('    ;; prep fn ' + op.functionName);
@@ -263,17 +289,37 @@ export async function compile({
             await write('    mov rsp, rax\n');
         } else if (op.type === OpType.Call) {
             if (!op.operation || isNaN(op.operation))
-                compilerError([op.location], "Error: Proc location wasn't found");
+                compilerError(
+                    [op.location],
+                    "Error: Proc location wasn't found"
+                );
+            const useFunctionName = hasParameter(
+                program.ops[op.operation],
+                '__provided_externally__'
+            );
             await write('    ;; call ' + op.functionName + '\n');
             await write('    mov rax, rsp\n');
             await write('    mov rsp, [ret_stack_rsp]\n');
-            await write('    call addr_%d\n', op.operation);
+            if (!useFunctionName)
+                await write('    call addr_%d\n', op.operation);
+            else await write('    call %s\n', op.functionName);
             await write('    mov [ret_stack_rsp], rsp\n');
             await write('    mov rsp, rax\n');
-            if (program.ops[op.operation].parameters?.includes('deprecated')) compilerWarn([op.location, program.ops[op.operation].location], op.functionName + ' is deprecated!');
+            if (program.ops[op.operation].parameters?.includes('deprecated'))
+                compilerWarn(
+                    [op.location, program.ops[op.operation].location],
+                    op.functionName + ' is deprecated!'
+                );
         } else if (op.type === OpType.PushAsm) {
             await write('    ;; assembly\n');
-            if (!op.parameters?.includes('__supports_linux__') && !op.parameters?.includes('__supports_target_linux__')) compilerError([op.location], 'This assembly does not seem to support the current target. (missing: __supports_linux__ or __supports_target_linux__)');
+            if (
+                !op.parameters?.includes('__supports_linux__') &&
+                !op.parameters?.includes('__supports_target_linux__')
+            )
+                compilerError(
+                    [op.location],
+                    'This assembly does not seem to support the current target. (missing: __supports_linux__ or __supports_target_linux__)'
+                );
             for (const value of op.operation.split('\n'))
                 await write(
                     value.length > 0
@@ -289,10 +335,34 @@ export async function compile({
             );
             if (op.operation && !op.operation.endsWith('\n')) await write('\n');
         } else if (op.type === OpType.Ret) {
-            await write('    ;; end\n');
-            await write('    mov rax, rsp\n');
-            await write('    mov rsp, [ret_stack_rsp]\n');
-            await write('    ret\n');
+            if (
+                hasParameter(
+                    program.contracts[op.operation]?.prep,
+                    '__function_exits__'
+                )
+            ) {
+                const str = chalk.red(
+                    'PANIC: ' +
+                        program.contracts[op.operation].name +
+                        ' returned even tho it was marked as __function_exits__!'
+                );
+                await write(
+                    '   ;; ReturnPanic (ret on __function_exits__ functions)\n'
+                );
+                await write('   mov rax, 1\n');
+                await write('   mov rdi, 2\n');
+                await write('   mov rsi, str_%s\n', getStringId(str));
+                await write('   mov rdx, %d\n', str.length);
+                await write('   syscall\n');
+                await write('   mov rax, 60\n');
+                await write('   mov rdi, 0\n');
+                await write('   syscall\n');
+            } else {
+                await write('    ;; end/ret\n');
+                await write('    mov rax, rsp\n');
+                await write('    mov rsp, [ret_stack_rsp]\n');
+                await write('    ret\n');
+            }
         } else if (op.type === OpType.Intrinsic) {
             switch (op.operation) {
                 case Intrinsic.Plus:
@@ -676,18 +746,36 @@ export async function compile({
 
     if (req_addrs.includes(program.ops.length))
         await write('addr_%d:\n', program.ops.length);
-    await write('    ;; call (main)\n');
-    await write('    mov rax, rsp\n');
-    await write('    mov rsp, [ret_stack_rsp]\n');
-    await write('    call addr_%d\n', program.mainop);
-    await write('    mov [ret_stack_rsp], rsp\n');
-    await write('    mov rsp, rax\n');
-    await write('    ;; exit program\n');
-    await write('    mov rax, 60\n');
-    if (program.contracts[program.mainop].outs.length < 1)
+    if (!dontRunFunctions) {
+        await write('    ;; call all ___run_function__ functions\n');
+        for (const f of program.functionsToRun) {
+            await write('    mov rax, rsp\n');
+            await write('    mov rsp, [ret_stack_rsp]\n');
+            await write('    call addr_%d\n', f);
+            await write('    mov [ret_stack_rsp], rsp\n');
+            await write('    mov rsp, rax\n');
+        }
+    }
+    if (!hasParameter(program.contracts[program.mainop].prep, '__nomain__')) {
+        await write('    ;; call (main)\n');
+        await write('    mov rax, rsp\n');
+        await write('    mov rsp, [ret_stack_rsp]\n');
+        await write('    call addr_%d\n', program.mainop);
+        await write('    mov [ret_stack_rsp], rsp\n');
+        await write('    mov rsp, rax\n');
+        await write('    ;; exit program\n');
+        await write('    mov rax, 60\n');
+        if (program.contracts[program.mainop].outs.length < 1)
+            await write('    mov rdi, 0\n');
+        else await write('    pop rdi\n');
+        await write('    syscall\n');
+    } else {
+        await write('    ;; skip calling main, __nomain__ is defined\n');
+        await write('    ;; exit(0)\n');
+        await write('    mov rax, 60\n');
         await write('    mov rdi, 0\n');
-    else await write('    pop rdi\n');
-    await write('    syscall\n');
+        await write('    syscall\n');
+    }
     await write('segment .data\n');
     for (const [str, id] of strings) {
         await write(
@@ -712,6 +800,10 @@ export async function compile({
             await write('    mem_' + name + ': resb ' + sz + '\n');
     }
 
+    for (const f of external) {
+        await write('%include "%s"\n', JSON.stringify(join('', f)));
+    }
+    asmEnd();
     await out.close();
 
     cmd_echoed(
@@ -728,6 +820,7 @@ export async function compile({
         )}.o"`,
         'linker'
     );
+    end();
 }
 
 export const removeFiles: string[] = ['.o', '.asm'];

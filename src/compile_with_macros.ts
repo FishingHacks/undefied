@@ -5,8 +5,10 @@ import { join } from 'path';
 import { format } from 'util';
 import { compilerError, compilerWarn } from './errors';
 import { OpType, Keyword, Type, Intrinsic, Program } from './types';
-import { cmd_echoed, humanLocation, humanType } from './utils';
+import { cmd_echoed, hasParameter, humanLocation, humanType } from './utils';
 import * as crypto from 'crypto';
+import chalk from 'chalk';
+import { timer } from './timer';
 
 function generateStringName(str: string): string {
     return crypto.randomUUID().replaceAll('-', '');
@@ -16,11 +18,16 @@ export async function compile({
     optimizations,
     program,
     filename,
+    external = [],
+    dontRunFunctions = false,
 }: {
     program: Program;
     optimizations: '0' | '1';
     filename?: string;
+    external?: string[];
+    dontRunFunctions?: boolean;
 }) {
+    const end = timer.start('compile() for target `linux-macros`');
     const strings: [string, string][] = [];
     const used: (keyof typeof macros)[] = [];
     const defs: string[] = [];
@@ -71,6 +78,8 @@ export async function compile({
     }
 
     if (!program.mainop) {
+        const asmEnd = timer.start('writing assembly');
+        
         await write('BITS 64\n');
         await write('segment .text\n');
         await write('global _start\n');
@@ -89,6 +98,8 @@ export async function compile({
             'str_nomain: db 0x50,0x41,0x4e,0x49,0x43,0x3a,0x20,0x4e,0x6f,0x20,0x6d,0x61,0x69,0x6e,0x20,0x66,0x75,0x6e,0x63,0x74,0x69,0x6f,0x6e,0x20,0x64,0x65,0x66,0x69,0x6e,0x65,0x64,0x21,0xa\n'
         ); // UTF-16 for 'No main function defined!\n'
 
+        asmEnd();
+
         await out.close();
         cmd_echoed(
             `nasm -felf64 -o "${filename.replaceAll(
@@ -102,11 +113,15 @@ export async function compile({
                 '\\"'
             )}.o"`
         );
+        end();
         return;
     }
 
     //#region printfunc
     if (optimizations === '0') {
+        const functionMetadataGenEnd = timer.start(
+            'included functions comment metadata generation'
+        );
         await write(';; Included Functions:\n');
         for (const [op, { ins, outs, used }] of Object.entries(
             program.contracts
@@ -132,8 +147,37 @@ export async function compile({
             else await write(outs.map(humanType).join(', '));
             await write('\n\n');
         }
+        functionMetadataGenEnd();    
     }
 
+    const addrLabelCollectionEnd = timer.start('address label collection');
+    const req_addrs: number[] = [program.mainop, ...program.functionsToRun];
+    for (const ip in program.ops) {
+        const op = program.ops[ip];
+        if (op.type === OpType.Keyword) {
+            if (
+                [
+                    Keyword.If,
+                    Keyword.Else,
+                    Keyword.While,
+                    Keyword.IfStar,
+                ].includes(op.operation)
+            ) {
+                if (!op.reference)
+                    return compilerError(
+                        [op.location],
+                        'Error: Reference to end not defined (forgot to run crossReferenceProgram?)'
+                    );
+                req_addrs.push(op.reference);
+            } else if (op.operation === Keyword.End && op.reference)
+                req_addrs.push(op.reference);
+        } else if (op.type === OpType.SkipFn) req_addrs.push(op.operation);
+        else if (op.type === OpType.Call) req_addrs.push(op.operation);
+    }
+    addrLabelCollectionEnd();
+
+
+    const printAsmEnd = timer.start('writing assembly for print');
     await write('BITS 64\n');
     await write('segment .text\n');
     await write('_print:\n');
@@ -175,33 +219,14 @@ export async function compile({
     await write('    mov rax, ret_stack_end\n');
     await write('    mov [ret_stack_rsp], rax\n');
     //#endregion printfunc
-
-    const req_addrs: number[] = [program.mainop];
-    for (const ip in program.ops) {
-        const op = program.ops[ip];
-        if (op.type === OpType.Keyword) {
-            if (
-                [
-                    Keyword.If,
-                    Keyword.Else,
-                    Keyword.While,
-                    Keyword.IfStar,
-                ].includes(op.operation)
-            ) {
-                if (!op.reference)
-                    return compilerError(
-                        [op.location],
-                        'Error: Reference to end not defined (forgot to run crossReferenceProgram?)'
-                    );
-                req_addrs.push(op.reference);
-            } else if (op.operation === Keyword.End && op.reference)
-                req_addrs.push(op.reference);
-        } else if (op.type === OpType.SkipFn) req_addrs.push(op.operation);
-        else if (op.type === OpType.Call) req_addrs.push(op.operation);
-    }
-
-    for (const ip in program.ops) {
-        const op = program.ops[ip];
+    printAsmEnd();
+    
+    const asmEnd = timer.start('writing assembly');
+    
+    let ip = 0;
+    while (ip < program.ops.length) {
+        const op = program.ops[++ip];
+        if (!op) break;
         if (req_addrs.includes(Number(ip))) await write('addr_%d:\n', ip);
 
         if (op.type === OpType.PushString) {
@@ -259,7 +284,14 @@ export async function compile({
         else if (op.type === OpType.SkipFn) {
             if (!op.operation || isNaN(op.operation))
                 compilerError([op.location], 'Error: No end-block found!');
-            await useMacro('skipfn', op.operation.toString(), op.functionName);
+            if (op.parameters?.includes('__provided_externally__'))
+                ip = op.operation - 1;
+            else
+                await useMacro(
+                    'skipfn',
+                    op.operation.toString(),
+                    op.functionName
+                );
         } else if (op.type === OpType.PrepFn) {
             await write(`${op.functionName}_${getId(op.functionName)}:\n`);
             await write(
@@ -276,10 +308,17 @@ export async function compile({
                     [op.location],
                     "Error: Proc location wasn't found"
                 );
-            await useMacro(
-                'calladdr',
-                op.operation.toString() + ' ;; ' + op.functionName
-            );
+            if (
+                !hasParameter(
+                    program.ops[op.operation],
+                    '__provided_externally__'
+                )
+            )
+                await useMacro(
+                    'calladdr',
+                    op.operation.toString() + ' ;; ' + op.functionName
+                );
+            else await useMacro('callFn', op.functionName);
             if (program.ops[op.operation].parameters?.includes('deprecated'))
                 compilerWarn(
                     [op.location, program.ops[op.operation].location],
@@ -304,7 +343,25 @@ export async function compile({
             if (op.operation && !op.operation.endsWith('\n')) await write('\n');
             await write('    ;; custom assembly end\n');
         } else if (op.type === OpType.Ret) {
-            await useMacro('retj');
+            if (
+                !hasParameter(
+                    program.contracts[op.operation]?.prep,
+                    '__function_exits__'
+                )
+            )
+                await useMacro('retj');
+            else {
+                const str = chalk.red(
+                    'PANIC: ' +
+                        program.contracts[op.operation].name +
+                        ' returned even tho it was marked as __function_exits__!'
+                );
+                await useMacro(
+                    'returnpanic',
+                    str.length.toString(),
+                    getStringId(str)
+                );
+            }
         } else if (op.type === OpType.Intrinsic) {
             switch (op.operation) {
                 case Intrinsic.Plus:
@@ -504,9 +561,23 @@ export async function compile({
 
     if (req_addrs.includes(program.ops.length))
         await write('addr_%d:\n', program.ops.length);
-    if (program.contracts[program.mainop].outs.length < 1)
-        await useMacro('exec_main_void');
-    else await useMacro('exec_main_int');
+    if (!dontRunFunctions) {
+        await write('    ;; call all ___run_function__ functions\n');
+        for (const f of program.functionsToRun)
+            await useMacro('calladdr', f.toString());
+    }
+
+    if (!hasParameter(program.contracts[program.mainop].prep, '__nomain__'))
+        if (program.contracts[program.mainop].outs.length < 1)
+            await useMacro('exec_main_void');
+        else await useMacro('exec_main_int');
+    else {
+        await write('    ;; skip calling main, __nomain__ is defined\n');
+        await write('    ;; exit(0)\n');
+        await write('    mov rax, 60\n');
+        await write('    mov rdi, 0\n');
+        await write('    syscall\n');
+    }
     await write('segment .data\n');
     for (const [str, id] of strings) {
         await write(
@@ -530,6 +601,12 @@ export async function compile({
         if (usedMems.includes(name))
             await write('    mem_' + name + ': resb ' + sz + '\n');
     }
+
+    for (const f of external) {
+        await write('%include "%s"\n', JSON.stringify(join('', f)));
+    }
+    
+    asmEnd();
 
     await out.close();
 
@@ -564,6 +641,8 @@ export async function compile({
         )}.o"`,
         'linker'
     );
+
+    end();
 }
 
 function generateMacros(intrinsics_used: (keyof typeof macros)[]) {

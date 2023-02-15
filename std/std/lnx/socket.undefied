@@ -91,7 +91,7 @@ const SOCK_PACKET 10 end
 const SOCK_NONBLOCK 04000 end
 const SOCK_CLOEXEC 02000000 end
 
-fn socket int int int -- int in
+inline fn socket int int int -- int in
     SYS_socket syscall3
 end
 
@@ -105,21 +105,21 @@ const sizeof(sockaddr_in.sin_addr) 4 end
 
 const INADDR_LOCAL 16777343 end
 
-fn listen int int -- int in SYS_listen syscall2 end
+inline fn listen int int -- int in SYS_listen syscall2 end
 
-fn bind int ptr int -- int in SYS_bind syscall3 end
+inline fn bind int ptr int -- int in SYS_bind syscall3 end
 
-fn accept int ptr ptr -- int in SYS_accept syscall3 end
+inline fn accept int ptr ptr -- int in SYS_accept syscall3 end
 
-fn read int ptr int -- int in SYS_read syscall3 end
+inline fn read int ptr int -- int in SYS_read syscall3 end
 
-fn close int -- int in SYS_close syscall1 end
+inline fn close int -- int in SYS_close syscall1 end
 
-fn sendto int ptr int int ptr int -- int in SYS_sendto syscall6 end
+inline fn sendto int ptr int int ptr int -- int in SYS_sendto syscall6 end
 
 memory tmp_send_mem sizeof(u64) 4 * end
 
-fn send int ptr int int -- int in
+inline fn send int ptr int int -- int in
   cast(int) tmp_send_mem sizeof(u64) 3 * ptr+ !64
   cast(int) tmp_send_mem sizeof(u64) 1 * ptr+ !64
   cast(int) tmp_send_mem sizeof(u64) 2 * ptr+ !64
@@ -132,6 +132,6 @@ fn send int ptr int int -- int in
   sendto
 end
 
-fn htons int -- int in
+inline fn htons int -- int in
   bswap16
 end

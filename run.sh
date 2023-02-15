@@ -1,2 +1,2 @@
 #! /bin/sh
-node ./bin/main.js compile ./test.undefied -r
+node ./bin/main.js compile ./code/test.undefied -r

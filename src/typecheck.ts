@@ -1,5 +1,6 @@
 import assert from 'assert';
-import { compilerError } from './errors';
+import { compilerError, info } from './errors';
+import { timer } from './timer';
 import {
     TypeCheckStack,
     Operation,
@@ -9,8 +10,9 @@ import {
     Intrinsic,
     Keyword,
     Program,
+    Contract,
 } from './types';
-import { humanType, getTypes } from './utils';
+import { humanType, getTypes, hasParameter } from './utils';
 
 function typeFits(type: Type | undefined, expectedType: Type): boolean {
     if (type === undefined) return false;
@@ -21,8 +23,10 @@ function typeFits(type: Type | undefined, expectedType: Type): boolean {
 function $typecheckProgram(
     program: Program,
     stack: TypeCheckStack,
-    expectedReturnValue?: Type[]
+    expectedReturnValue?: Type[],
+    currentContact?: Contract
 ) {
+    const end = timer.start('$typecheckProgram()');
     const functionBodies: {
         fip: number;
         body: Operation[];
@@ -38,16 +42,23 @@ function $typecheckProgram(
         } else if (op.type === OpType.Const) {
             stack.push({ loc: op.location, type: op._type });
         } else if (op.type === OpType.SkipFn) {
-            functionBodies.push({
-                fip: ip + 1,
-                body: program.ops.slice(ip + 2, op.operation - 1),
-                loc: op.location,
-                endLoc: program.ops[op.operation - 1].location,
-            });
+            if (
+                !hasParameter(op, [
+                    '__typecheck_ignore__',
+                    '__provided_externally__',
+                ])
+            )
+                functionBodies.push({
+                    fip: ip + 1,
+                    body: program.ops.slice(ip + 2, op.operation - 1),
+                    loc: op.location,
+                    endLoc: program.ops[op.operation - 1].location,
+                });
             ip = op.operation - 1;
         } else if (op.type === OpType.PrepFn)
             assert(false, 'Reached prepfn.. This should never happend');
         else if (op.type === OpType.Ret) {
+            op.operation = currentContact ? currentContact.index : op.operation;
             if (!expectedReturnValue)
                 compilerError(
                     [op.location],
@@ -69,53 +80,88 @@ function $typecheckProgram(
                 );
             if (stackSnapshots.length > 0)
                 stack = stackSnapshots[stackSnapshots.length - 1].stack;
-        } else if (op.type === OpType.Call) {
-            const contract = program.contracts[op.operation];
-            if (!contract) compilerError([op.location], 'No contract found');
-            if (stack.length < contract.ins.length)
-                compilerError(
-                    [op.location],
-                    'The stack has not enough elements (' +
-                        stack.length +
-                        ' elements on the stack, ' +
-                        contract.ins.length +
-                        ' elements needed)'
-                );
-            const supplied = [];
-            for (const t of contract.ins) {
-                const stackType = stack.pop();
-                if (stackType === undefined)
-                    compilerError(
-                        [op.location],
-                        'The stack has not enough elements'
-                    );
-                // should never happen
-                else supplied.push(stackType.type);
-                if (t !== stackType?.type && t !== Type.Any)
-                    compilerError(
-                        [op.location],
-                        'Type does not match, ' +
-                            humanType(t) +
-                            ' required, ' +
-                            humanType(
-                                stackType?.type === undefined
-                                    ? -1
-                                    : stackType.type
-                            ) +
-                            ' supplied (contract: ' +
-                            contract.ins.map(humanType).join(' ') +
-                            ' -- ' +
-                            [...contract.outs]
-                                .reverse()
-                                .map(humanType)
-                                .join(' ') +
-                            ', supplied: ' +
-                            supplied.map(humanType).join(' ') +
-                            ')'
-                    );
+            else {
+                end();
+                return {
+                    functionBodies,
+                    stack: !expectedReturnValue
+                        ? []
+                        : expectedReturnValue.map((el) => ({
+                              type: el,
+                              loc: op.location,
+                          })),
+                };
             }
-            for (const t of [...contract.outs].reverse()) {
-                stack.push({ loc: op.location, type: t });
+        } else if (op.type === OpType.Call) {
+            if (
+                hasParameter(
+                    program.contracts[op.operation].prep,
+                    '__function_exits__'
+                )
+            ) {
+                if (stackSnapshots.length > 0)
+                    stack = stackSnapshots[stackSnapshots.length - 1].stack;
+                else {
+                    end()
+                    return {
+                        functionBodies,
+                        stack: !expectedReturnValue
+                            ? []
+                            : expectedReturnValue.map((el) => ({
+                                  type: el,
+                                  loc: op.location,
+                              })),
+                    };
+                }
+            } else {
+                const contract = program.contracts[op.operation];
+                if (!contract)
+                    compilerError([op.location], 'No contract found');
+                if (stack.length < contract.ins.length)
+                    compilerError(
+                        [op.location],
+                        'The stack has not enough elements (' +
+                            stack.length +
+                            ' elements on the stack, ' +
+                            contract.ins.length +
+                            ' elements needed)'
+                    );
+                const supplied = [];
+                for (const t of contract.ins) {
+                    const stackType = stack.pop();
+                    if (stackType === undefined)
+                        compilerError(
+                            [op.location],
+                            'The stack has not enough elements'
+                        );
+                    // should never happen
+                    else supplied.push(stackType.type);
+                    if (t !== stackType?.type && t !== Type.Any)
+                        compilerError(
+                            [op.location],
+                            'Type does not match, ' +
+                                humanType(t) +
+                                ' required, ' +
+                                humanType(
+                                    stackType?.type === undefined
+                                        ? -1
+                                        : stackType.type
+                                ) +
+                                ' supplied (contract: ' +
+                                contract.ins.map(humanType).join(' ') +
+                                ' -- ' +
+                                [...contract.outs]
+                                    .reverse()
+                                    .map(humanType)
+                                    .join(' ') +
+                                ', supplied: ' +
+                                supplied.map(humanType).join(' ') +
+                                ')'
+                        );
+                }
+                for (const t of [...contract.outs].reverse()) {
+                    stack.push({ loc: op.location, type: t });
+                }
             }
         } else if (op.type === OpType.PushCString)
             stack.push({ loc: op.location, type: Type.Ptr });
@@ -409,11 +455,11 @@ function $typecheckProgram(
                     stack.push({ type: Type.Int, loc: op.location });
                     break;
                 case Intrinsic.StackInfo:
-                    console.log('Stack Info:');
+                    info('Stack Info:');
                     for (const [i, value] of Object.entries(
                         [...stack].reverse()
                     ))
-                        console.log(
+                        info(
                             'From %s:%d:%d: %s',
                             ...value.loc,
                             humanType(value.type),
@@ -606,10 +652,13 @@ function $typecheckProgram(
 
         ip++;
     }
+    end();
     return { stack, functionBodies };
 }
 
 export function typecheckProgram(program: Program, dev: boolean) {
+    const end = timer.start('typecheckProgram()');
+
     const { stack, functionBodies } = $typecheckProgram(program, []);
     if (stack.length > 0)
         compilerError(
@@ -619,7 +668,10 @@ export function typecheckProgram(program: Program, dev: boolean) {
     for (const fn of functionBodies) {
         const contract = program.contracts[fn.fip];
         if (!contract)
-            compilerError([fn.loc], 'Function does not have a contract attached');
+            compilerError(
+                [fn.loc],
+                'Function does not have a contract attached'
+            );
         const illegalDef = fn.body.find(
             (el) => el.type === OpType.PrepFn || el.type === OpType.SkipFn
         );
@@ -642,9 +694,11 @@ export function typecheckProgram(program: Program, dev: boolean) {
                 mems: {},
                 ops: fn.body,
                 mainop: program.mainop,
+                functionsToRun: program.functionsToRun,
             },
             fnStack,
-            contract.outs
+            contract.outs,
+            contract
         );
         if (functionBodies.length > 0)
             compilerError([fn.loc], 'Function definitions in function-body');
@@ -674,4 +728,6 @@ export function typecheckProgram(program: Program, dev: boolean) {
                     ')'
             );
     }
+
+    end();
 }

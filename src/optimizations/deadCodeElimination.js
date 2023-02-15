@@ -6,8 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.dce = void 0;
 const assert_1 = __importDefault(require("assert"));
 const errors_1 = require("../errors");
+const timer_1 = require("../timer");
 const types_1 = require("../types");
 function dce(program, dev) {
+    const end = timer_1.timer.start('dce()');
     if (program.mainop !== undefined)
         mark(program, program.mainop, dev);
     const newops = [];
@@ -26,15 +28,17 @@ function dce(program, dev) {
                 location: op.location,
                 operation: types_1.Intrinsic.None,
                 token: op.token,
+                ip: -1
             });
         }
-        else if (op.type === types_1.OpType.Ret && skipping && op.operation !== 1) {
+        else if (op.type === types_1.OpType.Ret && skipping && op.functionEnd) {
             skipping = false;
             newops.push({
                 type: types_1.OpType.Intrinsic,
                 location: op.location,
                 operation: types_1.Intrinsic.None,
                 token: op.token,
+                ip: -1,
             });
         }
         else if (skipping)
@@ -43,15 +47,18 @@ function dce(program, dev) {
                 location: op.location,
                 operation: types_1.Intrinsic.None,
                 token: op.token,
+                ip: -1,
             });
         else
             newops.push(op);
     }
     program.ops = newops;
+    end();
     return program;
 }
 exports.dce = dce;
 function mark(program, ip, dev) {
+    const _end = timer_1.timer.start('dce() -> mark()');
     let end = -1;
     while (true) {
         if (ip === end)
@@ -69,4 +76,5 @@ function mark(program, ip, dev) {
         if (operation.type === types_1.OpType.Call)
             mark(program, operation.operation - 1, dev);
     }
+    _end();
 }

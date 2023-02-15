@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ProfilingExplorer</title>
+    </head>
+    <body>
+        <h3>Please paste your JSON</h3>
+        <textarea class="textarea"></textarea>
+        <br />
+        <button onclick="buttonAction()">Load JSON</button>
+        <br />
+        <h3>Profiling Results</h3>
+        <div class="root">
+            <p style="color: rgb(93, 89, 89); font-style: italic">none</p>
+        </div>
+        <script>
+            if (window.location.href.includes('#'))
+                window.location.href = window.location.href.split('#')[0];
+            function buttonAction() {
+                const text =
+                    document.getElementsByClassName('textarea')[0].value;
+                if (!text) return;
+                loadProfile(JSON.parse(text));
+            }
+
+            function loadProfile(profile) {
+                const div = document.getElementsByClassName('root')[0];
+                for (const c of Object.values(div.children)) c.remove();
+                let elements = [];
+                for (const [name, profilings] of Object.entries(profile)) {
+                    elements.push(...profilings);
+                    div.append(createProfileElement(name, profilings));
+                }
+                const h3 = document.createElement('h3');
+                h3.textContent = 'Visual Representation (Cut at 100% width)';
+                div.append(h3);
+                elements = elements
+                    .filter((el) => el.end !== -1 && el.length !== -1)
+                    .sort((a, b) => b.length - a.length);
+                generateTimeline(elements);
+            }
+
+            function createProfileElement(name, profilings) {
+                const details = document.createElement('details');
+
+                const summary = document.createElement('summary');
+                summary.appendChild(document.createTextNode(name));
+                details.append(summary);
+
+                const table = document.createElement('table');
+                const thead = document.createElement('thead');
+                const tr = document.createElement('tr');
+                const th1 = document.createElement('th');
+                th1.append(document.createTextNode('Length'));
+                const th2 = document.createElement('th');
+                th2.append(document.createTextNode('Start'));
+                const th3 = document.createElement('th');
+                th3.append(document.createTextNode('End'));
+                const th4 = document.createElement('th');
+                th4.append(document.createTextNode('Caller'));
+                tr.append(th1, th2, th3, th4);
+                thead.append(tr);
+                table.append(thead);
+                const tbody = document.createElement('tbody');
+
+                for (const prof of profilings) {
+                    const tr = document.createElement('tr');
+                    if (prof.id === Number(window.location.hash.substring(1)))
+                        tr.classList.add('highlight');
+                    tr.id = prof.id;
+                    const td1 = document.createElement('td');
+                    td1.append(
+                        document.createTextNode(
+                            prof.length === -1
+                                ? 'Profiling not ended yet'
+                                : formatTimelength(prof.length)
+                        )
+                    );
+                    const td2 = document.createElement('td');
+                    td2.append(
+                        document.createTextNode(
+                            new Date(prof.start).toLocaleString()
+                        )
+                    );
+                    const td3 = document.createElement('td');
+                    td3.append(
+                        document.createTextNode(
+                            prof.end === -1
+                                ? 'Profiling not ended yet'
+                                : new Date(prof.end).toLocaleString()
+                        )
+                    );
+                    const td4 = document.createElement('td');
+                    const tooltip = document.createElement('div');
+                    tooltip.classList.add('tooltip');
+                    tooltip.style.cursor = 'pointer';
+                    tooltip.setAttribute(
+                        'data-tooltip',
+                        'click to copy location. Ctrl-click or middleclick to open it in a new window'
+                    );
+                    tooltip.append(
+                        document.createTextNode(
+                            prof.calledBy.name +
+                                ' in ' +
+                                prof.calledBy.location.substring(
+                                    prof.calledBy.location.lastIndexOf('/') + 1
+                                )
+                        )
+                    );
+                    tooltip.addEventListener('mousedown', (e) => {
+                        if (!e.ctrlKey && e.button === 0)
+                            navigator.clipboard.writeText(
+                                prof.calledBy.location
+                            );
+                        else if (e.button === 0 || e.button === 1) {
+                            const path = prof.calledBy.location.substring(
+                                0,
+                                prof.calledBy.location.lastIndexOf(':')
+                            );
+                            window.open(
+                                path.substring(0, path.lastIndexOf(':')),
+                                '_blank'
+                            );
+                        }
+                    });
+                    td4.append(tooltip);
+                    tr.append(td1, td2, td3, td4);
+                    tbody.append(tr);
+                }
+
+                table.append(tbody);
+
+                document.body.append(table);
+                details.style.minWidth = table.clientWidth + 'px';
+                document.body.removeChild(table);
+
+                details.append(table);
+                if (profilings.length < 5) details.setAttribute('open', '');
+
+                return details;
+            }
+
+            function generateTimeline(elements) {
+                const div = document.getElementsByClassName('root')[0];
+
+                const colors = ['green', 'red', 'blue', '#c88408', '#c3a109'];
+                const timeline = document.createElement('div');
+                timeline.classList.add('timeline');
+                div.append(timeline);
+                const divs = [
+                    document.createElement('div'),
+                    document.createElement('div'),
+                    document.createElement('div'),
+                    document.createElement('div'),
+                    document.createElement('div'),
+                    document.createElement('div'),
+                ];
+                timeline.append(...divs);
+                function getDiv() {
+                    let i = 0;
+                    for (let j = 0; j < divs.length; j++) {
+                        if (divs[j].clientWidth < divs[i].clientWidth) i = j;
+                    }
+                    return divs[i];
+                }
+                for (const el of elements) {
+                    const p = document.createElement('p');
+                    p.style.setProperty('--length', el.length * 2 + 'px');
+                    p.style.setProperty(
+                        '--color',
+                        colors[Math.floor(Math.random() * colors.length)]
+                    );
+                    const content =
+                        el.name + ': ' + formatTimelength(el.length);
+                    p.setAttribute('data-tooltip', content);
+                    const div = document.createElement('div');
+                    div.append(document.createTextNode(content));
+                    p.append(div);
+                    p.addEventListener('click', () => highlight(el.id));
+                    getDiv().append(p);
+                }
+            }
+
+            function formatTimelength(length) {
+                if (length < 2000) return length + 'ms';
+                else if (length < 120000)
+                    return (length / 1000).toFixed(3) + 's';
+                else if (length < 7200000)
+                    return (length / 60000).toFixed(3) + 'm';
+                else return (length / 3600000).toFixed(3) + 'hr';
+            }
+
+            function highlight(id) {
+                console.log(id);
+                window.location.hash = '#' + id;
+                const element = document.getElementById(id);
+                for (const el of Object.values(
+                    document.getElementsByClassName('highlight')
+                ))
+                    el.classList.remove('highlight');
+                element.scrollIntoViewIfNeeded({
+                    behavior: 'smooth',
+                });
+                element.classList.add('highlight');
+            }
+        </script>
+        <style>
+            body {
+                margin: 1rem;
+                padding: 0;
+                background-color: #181818;
+                color: white;
+                overflow-x: hidden;
+                font-family: sans-serif;
+            }
+
+            textarea {
+                background-color: #292727;
+                color: white;
+                border: none;
+                margin: 3px;
+                border-radius: 5px;
+                width: calc(100vw - 2rem - 6px);
+                height: 20vh;
+            }
+
+            details {
+                border: 1px solid #aaa;
+                border-radius: 4px;
+                padding: 0.5em 0.5em 0;
+                margin: 0.3rem;
+                display: inline-block;
+            }
+
+            summary {
+                cursor: pointer;
+                font-weight: bold;
+                margin: -0.5em -0.5em 0;
+                padding: 0.5em;
+            }
+
+            details[open] {
+                padding: 0.5em;
+            }
+
+            details[open] summary {
+                border-bottom: 1px solid #aaa;
+                margin-bottom: 0.5em;
+            }
+
+            table {
+                border-collapse: collapse;
+                border-spacing: 0px;
+            }
+            table,
+            th,
+            td {
+                padding: 5px;
+                border: 1px solid black;
+            }
+
+            .highlight {
+                background-color: #97420088;
+                animation: blink2 5s ease;
+            }
+
+            @keyframes blink2 {
+                25% {
+                    background-color: #974200;
+                }
+                50% {
+                    background-color: #0000;
+                }
+                75% {
+                    background-color: #974200;
+                }
+                100% {
+                    background-color: #97420088;
+                }
+            }
+
+            .timeline {
+                display: flex;
+                flex-direction: column;
+                flex-wrap: nowrap;
+                gap: 8px;
+                overflow-x: scroll;
+                overflow-y: hidden;
+                padding-top: 50px;
+                margin-top: -50px;
+            }
+            .timeline > div {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                gap: 8px;
+                width: fit-content;
+            }
+            .timeline p {
+                background-color: var(--color);
+                width: calc(28px + var(--length));
+                padding: 0px;
+                margin: 3px;
+                border-radius: 3px;
+                padding: 2px;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                cursor: pointer;
+                flex-grow: 0;
+                flex-shrink: 0;
+            }
+            .timeline p div {
+                overflow: hidden;
+            }
+
+            .timeline p::after,
+            .tooltip::after {
+                content: attr(data-tooltip);
+                background-color: #4b5563;
+                cursor: text;
+                color: #f5f5f5;
+                padding: 5px 7px;
+                font-size: 0.7rem;
+                overflow: hidden;
+                position: absolute;
+                left: 50%;
+                width: max-content;
+                transform: translate(-50%, -0.5rem);
+                border-radius: 3px;
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.25s ease;
+                white-space: pre;
+                top: 0;
+            }
+
+            .timeline p:hover::after,
+            .tooltip:hover::after {
+                opacity: 1;
+                transform: translate(-50%, -100%);
+                display: initial;
+            }
+            .timeline p,
+            .tooltip {
+                position: relative;
+            }
+        </style>
+    </body>
+</html>

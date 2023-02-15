@@ -36,6 +36,6 @@ bin/*.js
 src/*.js
 *.o
 
-
-test.asm
-test
+code/*
+!code/*.undefied
+code/std*

@@ -427,3 +427,14 @@
     cmp rax, 0
     je addr_%1
 %endmacro
+
+%macro returnpanic 2
+    mov rax, 1
+    mov rdi, 2
+    mov rsi, str_%2
+    mov rdx, %1
+    syscall
+    mov rax, 60
+    mov rdi, 0
+    syscall
+%endmacro

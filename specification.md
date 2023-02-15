@@ -535,13 +535,13 @@ end
 | `__supports_target_linux_macros__` |                                                                                                                                      Mark a assembly as supporting the target `linux-macros` |
 | `__supports_windows__`             |                                                                                                                                                        Mark a assembly as supporting Windows |
 | `__supports_macos__`               |                                                                                                                                                          Mark a assembly as supporting MacOS |
-| `--- Proposed ---`                 |                                                                                                                                                                           `--- Proposed ---` |
 | `__typecheck_ignore__`             |                                                                                                                                                                 dont typecheck this function |
 | `__provided_externally__`          |                                Mark a function as non-undefinable, and as that a foreign source provides it. This will expect the function name as a label in assembly, but wont compile it. |
 | `__export__`                       |                                                                                                                               When the parser or vm supports exporting, export this function |
-| `__function_exits__`               |                                                                                                             This function will never return. All return statements get replaced with panics. |
+| `__function_exits__`               |                                                                                                        This function will never return. All `ret` statements will get replaced with a panic. |
 | `__run_function__`                 | This will cause the function to run before main. It has to have an empty in and out. All `__run_function__` marked functions will be ran in an arbitrary sequence, before the main function. |
 | `__nomain__`                       |                                                               Apply this to the main function. It will cause it to not run it and instead just exit. May be useful for webassembly-alike vms |
+| `--- Proposed ---`                 |                                                                                                                                                                           `--- Proposed ---` |
 
 # Code
 

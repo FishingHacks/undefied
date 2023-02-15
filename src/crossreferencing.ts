@@ -1,8 +1,11 @@
 import assert from 'assert';
 import { compilerError } from './errors';
+import { timer } from './timer';
 import { Operation, OpType, Keyword, Program } from './types';
 
 export function crossReferenceProgram(program: Program): Program {
+    const end = timer.start('crossReferenceProgram()');
+    
     const stack: string[] = [];
     let _ip: string | undefined;
     let _op: Operation;
@@ -70,6 +73,8 @@ export function crossReferenceProgram(program: Program): Program {
                             location: op.location,
                             token: op.token,
                             operation: 0,
+                            ip: Number(ip),
+                            functionEnd: true,
                         };
                         break;
                     }
@@ -132,6 +137,6 @@ export function crossReferenceProgram(program: Program): Program {
                 )
                 .join('\n')
     );
-
+    end();
     return program;
 }

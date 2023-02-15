@@ -1,0 +1,5 @@
+include "std/io"
+
+fn printhello in
+    "Hello, World!\n" puts
+end

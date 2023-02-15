@@ -3,8 +3,15 @@ import { spawnSync } from 'child_process';
 import { join } from 'path';
 import compileFile from '../src/completeCompiler';
 import { INCLUDE_DIRECTORY, INFO } from '../src/constants';
-import { error } from '../src/errors';
+import { error, success } from '../src/errors';
 import helpMenu from '../src/help';
+import {
+    readConfig,
+    executeConfig,
+    resolveConfigPath,
+} from '../src/readConfig';
+import { timer } from '../src/timer';
+import { getErrorName, hasErrored } from '../src/typingutils';
 
 function compile(
     file: string,
@@ -57,8 +64,16 @@ function compile(
     }
 }
 
+let end: () => void = () => {};
+let profilingEnabled: boolean = false;
+
 async function main(args: string[]) {
+    end = timer.start('main()');
     args = args.slice(2);
+    if (isCommand(args[0], 'profiling', 'p')) {
+        profilingEnabled = true;
+        args.shift();
+    }
     if (isCommand(args[0], 'help', 'h') || args.length < 1) {
         console.log(helpMenu(INFO.version));
         process.exit(0);
@@ -78,7 +93,7 @@ async function main(args: string[]) {
         if (!file.endsWith('.undefied'))
             error('Error: Only .undefied files are allowed');
         compile(file, args.slice(2), true, true);
-        console.log(chalk.green('Done! Everything looks like it should work!'));
+        success('Done! Everything looks like it should work!');
     } else if (args[0] === 'check-std' || args[0] === 'typecheck-std') {
         const proc = spawnSync(
             'node',
@@ -89,9 +104,21 @@ async function main(args: string[]) {
             el ? process.stdout.write(el.toString()) : null
         );
         if (proc.error) console.error(proc.error);
+    } else if (args[0] === 'config') {
+        const value = await readConfig(args[1]);
+        if (hasErrored(value)) error(getErrorName(value.error));
+        else
+            await executeConfig(
+                value.value,
+                join(resolveConfigPath(args[1]), '..')
+            );
+        return;
     } else error('Error: Subcommand or option ' + args[0] + ' was not found');
 }
-
+process.on('beforeExit', () => {
+    end();
+    if (profilingEnabled) timer.print();
+});
 main(process.argv);
 
 function isCommand(str: string, command: string, short: string) {
@@ -111,12 +138,14 @@ function optionParser<T extends string>(
     values: Record<T, string | boolean>;
     remaining: string[];
 } {
+    const end = timer.start('optionParser()');
     const specified: T[] = [];
     const values: Record<string, string | boolean> = {};
     let i = -1;
 
-    function getKey(name: string): T|undefined {
-        for (const [k, v] of Object.entries<string[]>(options)) if (v.includes(name)) return k as T;
+    function getKey(name: string): T | undefined {
+        for (const [k, v] of Object.entries<string[]>(options))
+            if (v.includes(name)) return k as T;
         return undefined;
     }
 
@@ -144,6 +173,7 @@ function optionParser<T extends string>(
         if (values[k] === undefined) values[k] = false;
     }
 
+    end();
     return { specified, values, remaining: args.slice(i) };
 }
 

@@ -8,6 +8,7 @@ include "std/lnx/syscalltable"
 .ifdef SC_open undef SC_open .end
 .ifdef SC_mmap undef SC_mmap .end
 
+.param __function_exits__
 inline fn SC_exit int in SYS_exit syscall1 drop end
 inline fn SC_write int ptr int in SYS_write syscall3 drop end
 inline fn SC_read int ptr int in SYS_read syscall3 drop end

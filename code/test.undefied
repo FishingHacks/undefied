@@ -1,3 +1,6 @@
+# gets included by the config file
+# include "/home/fishi/js/undefied/a"
+
 # This is the test thingi
 # Testing your features will help
 # Catch bugs :>
@@ -22,18 +25,30 @@ inline fn helloWorld in
   "Hello, World!\n" puts
 end
 
+fn printargs in
+  1
+  while
+    dup argc @ > if drop return end
+    "Argument no " puts
+    dup putu
+    " : " puts
+    dup 1 - nthArg cstrToStr puts "\n" puts
+    1 +
+  end drop
+end
+
 fn maina in
   "Supports: " puts __TARGET__ putu " (" puts __TARGET_SUPPORT__ puts ")\n" puts
   "Compilation Target: " puts __TARGET_STR__ puts "\n" puts
   helloWorld
 
-  cli-args_setup
   11 10 + print
   
   "Exit\n" puts
   
-  2 nthArg cstrToStr puts "\n" puts
-  argc @ print
+  "Arguments : " puts argc @ print
+  printargs
+
   
   4
   dup 1 = if  "one"

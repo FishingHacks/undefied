@@ -18,9 +18,7 @@ struct CStr in
   pointer ptr
 end
 
-fn cstrToStr CStr -- Str in 0 1 while drop over over swap cast(int) + cast(ptr) @ 0 != if 1 + 1 else 0 end end drop swap end
-
-fn cstrlen ptr -- int in
+fn cstrlen CStr -- int in
   0 1
   while
     drop
@@ -29,7 +27,9 @@ fn cstrlen ptr -- int in
   drop swap drop
 end
 
-fn cstreq ptr ptr -- bool in
+inline fn cstrToStr CStr -- Str in dup cstrlen swap end
+
+fn cstreq CStr CStr -- bool in
   over over cstrlen swap cstrlen != if drop drop false return end
   dup cstrlen
 
@@ -47,7 +47,7 @@ end
 
 memory tmp_strlen_streq sizeof(u64) end
 
-fn streq ptr int ptr int -- bool in
+fn streq Str Str -- bool in
   swap tmp_strlen_streq !64 rot rot tmp_strlen_streq @64 != if drop drop false return end
   tmp_strlen_streq @64
 

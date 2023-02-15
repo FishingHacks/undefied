@@ -1,8 +1,10 @@
 import assert from 'assert';
 import { compilerInfo } from '../errors';
+import { timer } from '../timer';
 import { Intrinsic, Operation, OpType, Program } from '../types';
 
 export function dce(program: Program, dev: boolean) {
+    const end = timer.start('dce()');
     if (program.mainop !== undefined) mark(program, program.mainop, dev);
     const newops: Operation[] = [];
 
@@ -23,8 +25,9 @@ export function dce(program: Program, dev: boolean) {
                 location: op.location,
                 operation: Intrinsic.None,
                 token: op.token,
+                ip: -1
             });
-        } else if (op.type === OpType.Ret && skipping && op.operation !== 1) {
+        } else if (op.type === OpType.Ret && skipping && op.functionEnd) {
             skipping = false;
 
             newops.push({
@@ -32,6 +35,7 @@ export function dce(program: Program, dev: boolean) {
                 location: op.location,
                 operation: Intrinsic.None,
                 token: op.token,
+                ip: -1,
             });
         } else if (skipping)
             newops.push({
@@ -39,14 +43,17 @@ export function dce(program: Program, dev: boolean) {
                 location: op.location,
                 operation: Intrinsic.None,
                 token: op.token,
+                ip: -1,
             });
         else newops.push(op);
     }
     program.ops = newops;
+    end();
     return program;
 }
 
 function mark(program: Program, ip: number, dev: boolean) {
+    const _end = timer.start('dce() -> mark()');
     let end: number = -1;
 
     while (true) {
@@ -62,4 +69,5 @@ function mark(program: Program, ip: number, dev: boolean) {
         if (operation.type === OpType.Call)
             mark(program, operation.operation - 1, dev);
     }
+    _end();
 }

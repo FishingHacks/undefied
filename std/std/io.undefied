@@ -36,11 +36,11 @@ fn fputu int int in
     swap decToStr rot rot fputs
 end
 
-fn putu int in
+inline fn putu int in
     FD_stdio fputu
 end
 
-fn eputu int in
+inline fn eputu int in
     FD_stderr fputu
 end
 
@@ -49,11 +49,11 @@ fn fputx int int in
     swap hexToStr rot rot fputs
 end
 
-fn putx int in
+inline fn putx int in
     FD_stdio fputx
 end
 
-fn eputx int in
+inline fn eputx int in
     FD_stderr fputx
 end
 
@@ -62,10 +62,10 @@ fn fputb int int in
     swap binToStr rot rot fputs
 end
 
-fn putb int in
+inline fn putb int in
     FD_stdio fputb
 end
 
-fn eputb int in
+inline fn eputb int in
     FD_stderr fputb
 end

@@ -7,6 +7,8 @@ include "std/lnx/syscalls"
 include "std/lnx/socket"
 include "std/io"
 include "std/memory"
+include "std/all"
+include "std/target"
 
 const PORT 6969 end
 

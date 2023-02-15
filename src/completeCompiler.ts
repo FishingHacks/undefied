@@ -9,7 +9,8 @@ import { parseProgram } from './parser';
 import { typecheckProgram } from './typecheck';
 import { cmd_echoed, exists, isFile } from './utils';
 import { rmSync } from 'fs';
-import { compiler } from './types';
+import { compiler, Loc, Token, TokenType } from './types';
+import { timer } from './timer';
 
 export default async function compileFile(
     file: string,
@@ -20,6 +21,10 @@ export default async function compileFile(
         target = 'linux',
         keepFiles = false,
         dev = false,
+        dontRunFunctions,
+        external,
+        libs = [],
+        predefConsts = {},
     }: {
         optimizations?: '0' | '1';
         unsafe?: boolean;
@@ -27,18 +32,36 @@ export default async function compileFile(
         target?: string;
         keepFiles?: boolean;
         dev?: boolean;
+        external?: string[];
+        dontRunFunctions?: boolean;
+        libs?: string[];
+        predefConsts?: Record<string, number>;
     } = {},
     typecheckingOnly: boolean,
     args?: string[]
 ) {
+    const end = timer.start('compileFile("' + file + '")');
+    const tokens: Token[] = [];
+    const includeLoc: Loc = ['<included-libs>', 0, 0];
+    for (const l of libs) {
+        tokens.push({
+            loc: includeLoc,
+            type: TokenType.Word,
+            value: 'include',
+        });
+        tokens.push({
+            loc: includeLoc,
+            type: TokenType.String,
+            value: l,
+        });
+    }
+
     const compiler = getCompiler(target);
     if (!compiler)
         error('No compiler for the specified target found (' + target + ')');
-    const predefConsts: Record<string, number> = {
-        __TARGET_LINUX__: 0,
-        __TARGET_LINUX_MACROS__: 1,
-        __TARGET__: makeTarget(target),
-    };
+    predefConsts.__TARGET_LINUX__ = 0;
+    predefConsts.__TARGET_LINUX_MACROS__ = 1;
+    predefConsts.__TARGET__ = makeTarget(target);
     args ||= [];
     while (true) {
         const arg = args[0];
@@ -71,14 +94,14 @@ export default async function compileFile(
         error('Error: Only .undefied files are allowed');
     if (!(await exists(file)) || !(await isFile(file)))
         error("Error: Cannot find file '" + file + "'");
-    const program = crossReferenceProgram(
-        await parseProgram(
-            await generateTokens(file, dev),
-            Number(optimizations),
-            predefConsts,
-            dev
-        )
+    tokens.push(...(await generateTokens(file, dev)));
+    const parsed = await parseProgram(
+        tokens,
+        Number(optimizations),
+        predefConsts,
+        dev
     );
+    const program = crossReferenceProgram(parsed);
     if (!unsafe) typecheckProgram(program, dev);
     if (!typecheckingOnly) {
         if (optimizations === '1') dce(program, dev);
@@ -88,8 +111,11 @@ export default async function compileFile(
             program,
             filename: file,
             optimizations,
+            dontRunFunctions,
+            external,
         });
         if (!keepFiles) cleanFiles(file, compiler.removeFiles, dev);
+        end();
         if (run)
             cmd_echoed(
                 `"${
@@ -103,11 +129,13 @@ export default async function compileFile(
 }
 
 function cleanFiles(filename: string, files: string[], dev: boolean) {
+    const end = timer.start('cleanFiles()');
     if (!filename.startsWith('/')) filename = join(process.cwd(), filename);
     for (const f of files) {
         if (dev) info('Removing file ' + filename + f);
         rmSync(filename + f);
     }
+    end();
 }
 
 function getCompiler(

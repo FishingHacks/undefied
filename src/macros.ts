@@ -11,14 +11,14 @@ export const swap =
     '%macro swap 0\n' +
     '    pop rax\n' +
     '    pop rbx\n' +
-    "    push rax\n" +
+    '    push rax\n' +
     '    push rbx\n' +
     '%endmacro';
 
 export const dup =
     '%macro dup 0\n' +
     '    pop rax\n' +
-    "    push rax\n" +
+    '    push rax\n' +
     '    push rax\n' +
     '%endmacro';
 
@@ -439,4 +439,16 @@ export const whilee =
     '    push rax\n' +
     '    cmp rax, 0\n' +
     '    je addr_%1\n' +
+    '%endmacro';
+
+export const returnpanic =
+    '%macro returnpanic 2\n' +
+    '    mov rax, 1\n' +
+    '    mov rdi, 2\n' +
+    '    mov rsi, str_%2\n' +
+    '    mov rdx, %1\n' +
+    '    syscall\n' +
+    '    mov rax, 60\n' +
+    '    mov rdi, 0\n' +
+    '    syscall\n' +
     '%endmacro';
