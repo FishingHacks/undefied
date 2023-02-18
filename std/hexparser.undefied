@@ -13,14 +13,14 @@ end
 memory hexstore 1 end
 
 fn parseHexVal ptr int -- int in
-0 hexstore !
+0 hexstore !8
 swap
 while
     swap
-    dup @ parseHexDig
-    hexstore @ 16 * + hexstore !
+    dup @8 parseHexDig
+    hexstore @8 16 * + hexstore !8
     cast(int) 1 + cast(ptr)
     swap
 1 - end drop drop
-hexstore @
+hexstore @8
 end

@@ -1,0 +1,3 @@
+include "std/all"
+
+fn main in end

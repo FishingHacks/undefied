@@ -20,7 +20,7 @@ in
   std_memory_byte !64
   std_memory_data @ptr swap
   while
-    std_memory_byte @64 std_memory_data @ptr !
+    std_memory_byte @64 std_memory_data @ptr !64
     std_memory_data inc64
     1 -
     dup 1 < if drop 0 end 

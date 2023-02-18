@@ -18,4 +18,4 @@ inline fn -ptr ptr int -- ptr in cast(int) - cast(ptr) end
 inline fn printptr ptr in cast(int) putx end
 inline fn @ptr ptr -- ptr in @64 cast(ptr) end
 inline fn @@ptr ptr -- ptr in @ptr @ptr end
-inline fn !ptr ptr ptr in fake(drop) fake(drop) cast(ptr) cast(int) !64 end
+inline fn !ptr ptr ptr in fake(drop) fake(drop) fake(int) fake(ptr) !64 end

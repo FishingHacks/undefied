@@ -509,6 +509,8 @@ Supported Blocks:
 -   `assembly`
 -   `fn`
 
+**NOTE**: Only fn, not inline fn
+
 ```rb
 .param <identifier>
 ```
@@ -530,17 +532,20 @@ end
 | Name                               |                                                                                                                                                                                        Usage |
 | :--------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | `deprecated`                       |                                                                                                                                                 Function Only: Mark a function as deprecated |
-| `__supports_linux__`               |                                                                                                                                                          Mark a assembly as supporting Linux |
-| `__supports_target_linux__`        |                                                                                                                                             Mark a assembly as supporting the target `linux` |
-| `__supports_target_linux_macros__` |                                                                                                                                      Mark a assembly as supporting the target `linux-macros` |
-| `__supports_windows__`             |                                                                                                                                                        Mark a assembly as supporting Windows |
-| `__supports_macos__`               |                                                                                                                                                          Mark a assembly as supporting MacOS |
+| `__supports_linux__`               |                                                                                                                                                            Mark assembly as supporting Linux |
+| `__supports_target_linux__`        |                                                                                                                                               Mark assembly as supporting the target `linux` |
+| `__supports_target_linux_macros__` |                                                                                                                                        Mark assembly as supporting the target `linux-macros` |
+| `__supports_windows__`             |                                                                                                                                                          Mark assembly as supporting Windows |
+| `__supports_macos__`               |                                                                                                                                                            Mark assembly as supporting MacOS |
+| `__supports_javascript__`          |                                                                                                                                                            Mark assembly as being Javascript |
 | `__typecheck_ignore__`             |                                                                                                                                                                 dont typecheck this function |
 | `__provided_externally__`          |                                Mark a function as non-undefinable, and as that a foreign source provides it. This will expect the function name as a label in assembly, but wont compile it. |
 | `__export__`                       |                                                                                                                               When the parser or vm supports exporting, export this function |
 | `__function_exits__`               |                                                                                                        This function will never return. All `ret` statements will get replaced with a panic. |
 | `__run_function__`                 | This will cause the function to run before main. It has to have an empty in and out. All `__run_function__` marked functions will be ran in an arbitrary sequence, before the main function. |
 | `__nomain__`                       |                                                               Apply this to the main function. It will cause it to not run it and instead just exit. May be useful for webassembly-alike vms |
+| `__fn_anonymous__`                 |                                                               Mark an function as anonymous. This will make it not being assigned to its name. Useful in conjunction with `__run_function__` |
+| `__fn_anon__`                      |                                                               Mark an function as anonymous. This will make it not being assigned to its name. Useful in conjunction with `__run_function__` |
 | `--- Proposed ---`                 |                                                                                                                                                                           `--- Proposed ---` |
 
 # Code
@@ -604,6 +609,7 @@ A version looks like this: `major.minor.patchlevel`. For `1.2.5` that means that
 | `__UNDEFIED_PATCHLEVEL__`   |                       The Compiler Version patch level |
 | `__OPTIMIZATIONS__`         |   The Optimization level it got compiled with (0 or 1) |
 | `__DEV__`                   | If the devmode was enabled at compilation (type: bool) |
+| `__TYPECHECK__`             |        Set to true, when run in typechecking only mode |
 
 **Note**
 
@@ -669,3 +675,7 @@ $ undefied com main.undefied -DPLATFORM=4
 | `__UNDEFIED_VERSION_CSTR__` |          The compiler version during compilation as a cstring |
 | `__BASE_FILE__`             |  The file that the compilation command was run on as a string |
 | `__BASE_FILE_CSTR__`        | The file that the compilation command was run on as a cstring |
+
+> ## Profiler
+>
+> [Github Repository](https://github.com/FishingHacks/simple-profiler) | [Profile Explorer](https://fishinghacks.github.io/simple-profiler)

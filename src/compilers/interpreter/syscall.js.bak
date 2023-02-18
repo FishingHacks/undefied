@@ -1,0 +1,3 @@
+function SC_exit(int) {
+    throw new Error('Exit with code ' + int);
+}

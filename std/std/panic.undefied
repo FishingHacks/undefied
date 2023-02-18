@@ -1,6 +1,7 @@
 include "std/io"
 include "std/target"
 .if __TARGET_LINUX_SUPPORT__ include "std/lnx/syscalls" .end
+.ifeq __TARGET__ __TARGET_JAVASCRIPT__ include "std/js/syscalls" .end
 
 .ifndef SC_exit .error "No exit syscall function defined" .end
 

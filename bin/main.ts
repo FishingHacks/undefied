@@ -1,8 +1,7 @@
 import chalk from 'chalk';
-import { spawnSync } from 'child_process';
 import { join } from 'path';
 import compileFile from '../src/completeCompiler';
-import { INCLUDE_DIRECTORY, INFO } from '../src/constants';
+import { INFO } from '../src/constants';
 import { error, success } from '../src/errors';
 import helpMenu from '../src/help';
 import {
@@ -10,10 +9,11 @@ import {
     executeConfig,
     resolveConfigPath,
 } from '../src/readConfig';
+import { targetList } from '../src/targets';
 import { timer } from '../src/timer';
 import { getErrorName, hasErrored } from '../src/typingutils';
 
-function compile(
+async function compile(
     file: string,
     args: string[],
     typecheck: boolean,
@@ -23,21 +23,38 @@ function compile(
         specified: options,
         remaining,
         values,
-    } = optionParser(args, {
-        run: ['r', 'run'],
-        unsafe: ['u', 'unsafe'],
-        opt0: ['O0'],
-        opt1: ['O1'],
-        keepFiles: ['keep'],
-        target: ['t', 'target'],
-        dev: ['d', 'dev'],
-    });
+    } = optionParser(
+        args,
+        {
+            run: ['r', 'run'],
+            unsafe: ['u', 'unsafe'],
+            opt0: ['O0'],
+            opt1: ['O1'],
+            keepFiles: ['keep'],
+            target: ['t', 'target'],
+            dev: ['d', 'dev'],
+        },
+        [
+            '-d',
+            '-D',
+            '--d',
+            '--D',
+            '-l',
+            '--l',
+            '-L',
+            '--L',
+            '-i',
+            '-I',
+            '--i',
+            '--i',
+        ]
+    );
     if (options.includes('opt0') && options.includes('opt1'))
         error("Error: You can't use multiple optimization levels");
     const optimization = options.find((el) => el.startsWith('opt')) || 'opt1';
 
     try {
-        compileFile(
+        await compileFile(
             file,
             {
                 run: options.includes('run'),
@@ -68,7 +85,7 @@ let end: () => void = () => {};
 let profilingEnabled: boolean = false;
 
 async function main(args: string[]) {
-    end = timer.start('main()');
+    end = timer.start('execution time');
     args = args.slice(2);
     if (isCommand(args[0], 'profiling', 'p')) {
         profilingEnabled = true;
@@ -95,15 +112,18 @@ async function main(args: string[]) {
         compile(file, args.slice(2), true, true);
         success('Done! Everything looks like it should work!');
     } else if (args[0] === 'check-std' || args[0] === 'typecheck-std') {
-        const proc = spawnSync(
-            'node',
-            [join(INCLUDE_DIRECTORY, 'typecheckStd.js')],
-            { shell: true }
-        );
-        proc.output.forEach((el) =>
-            el ? process.stdout.write(el.toString()) : null
-        );
-        if (proc.error) console.error(proc.error);
+        const end = timer.start('STD Typecheck');
+
+        for (const t of targetList) {
+            await compile(
+                join(__filename, '../check-std.undefied'),
+                ['-d', '-O0', '-t', t],
+                true,
+                false
+            );
+        }
+        end();
+        success('Successfully typechecked std!');
     } else if (args[0] === 'config') {
         const value = await readConfig(args[1]);
         if (hasErrored(value)) error(getErrorName(value.error));
@@ -116,10 +136,10 @@ async function main(args: string[]) {
     } else error('Error: Subcommand or option ' + args[0] + ' was not found');
 }
 process.on('beforeExit', () => {
-    end();
     if (profilingEnabled) timer.print();
 });
-main(process.argv);
+
+main(process.argv).then(end);
 
 function isCommand(str: string, command: string, short: string) {
     return (
@@ -132,7 +152,8 @@ function isCommand(str: string, command: string, short: string) {
 
 function optionParser<T extends string>(
     args: string[],
-    options: Record<T, string[]>
+    options: Record<T, string[]>,
+    allowStarting: string[]
 ): {
     specified: T[];
     values: Record<T, string | boolean>;
@@ -148,6 +169,7 @@ function optionParser<T extends string>(
             if (v.includes(name)) return k as T;
         return undefined;
     }
+    const newargs: string[] = [];
 
     let lastarg: string = '';
     while (true) {
@@ -162,7 +184,14 @@ function optionParser<T extends string>(
                 ? arg.substring(2)
                 : arg.substring(1);
             const key = getKey(newarg);
-            if (key === undefined) break;
+            if (key === undefined) {
+                if (
+                    allowStarting.map((el) => arg.startsWith(el)).includes(true)
+                )
+                    newargs.push(arg);
+                else break;
+                continue;
+            }
             lastarg = key;
             if (specified.includes(key)) break;
             specified.push(key);
@@ -173,8 +202,9 @@ function optionParser<T extends string>(
         if (values[k] === undefined) values[k] = false;
     }
 
+    newargs.push(...args.slice(i));
     end();
-    return { specified, values, remaining: args.slice(i) };
+    return { specified, values, remaining: newargs };
 }
 
 function optionAsStr(option: boolean | string): string | undefined {

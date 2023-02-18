@@ -1,0 +1,67 @@
+// Util functions for javascript
+(function () {
+    const utils = (window.undefiedutils = {});
+    const memory = __undefieddata__.memory;
+
+    utils.readMemory = function readMemory(offset, length) {
+        return memory.slice(offset, offset + length);
+    };
+
+    utils.writeMemory = function writeMemory(offset, length, data) {
+        if (data.length !== length)
+            throw new Error('The data array length has to be equal to length');
+        for (let i = 0; i < length; i++) memory[offset + i] = data[i];
+    };
+
+    utils.free = function free(ptr) {
+        const size = memory[ptr - 1];
+        for (let i = 0; i < size; i++) delete memory[memory.length - 1 - i];
+    };
+
+    utils.malloc = function malloc(sz) {
+        if (sz === 0) return -1;
+        memory[memory.length] = sz + 1;
+        const ptr = memory.length;
+        for (let i = 0; i < sz; i++) memory[ptr + i] = 0;
+        return ptr;
+    };
+})();
+
+// Util functions for undefied
+
+(function () {
+    function exportFn(fn, name) {
+        name ||= fn.name;
+        if (window[name] !== undefined)
+            throw new Error('window.' + name + ' is already defined!');
+        window[name] = fn;
+    }
+
+    const utils = window.undefiedutils;
+    const memory = __undefieddata__.memory;
+
+    function toString(ptr, length) {
+        return String.fromCharCode(...utils.readMemory(ptr, length));
+    }
+
+    function malloc(sz) {
+        return utils.malloc(sz);
+    }
+
+    function free(sz) {
+        return utils.free(sz);
+    }
+
+    function fputs(fd, ptr, length) {
+        if (fd !== 2 && fd !== 1)
+            throw new Error(
+                'fputs called with a file descriptor other than 1 or 2'
+            );
+        (fd === 1 ? console.log : console.error)(toString(ptr, length));
+    }
+
+    exportFn(toString, 'Str::toJSString');
+    exportFn(free);
+    exportFn(malloc);
+    exportFn(fputs);
+})();

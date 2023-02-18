@@ -1,0 +1,9 @@
+include "./use-js"
+
+.ifdef malloc undef malloc .end
+.ifdef free undef free .end
+
+.param __provided_externally__
+fn malloc int -- ptr in end
+.param __provided_externally__
+fn free ptr in end

@@ -13,7 +13,7 @@ import {
     isUndefined,
     makeError,
 } from './typingutils';
-import { isFile } from './utils';
+import { isFile } from './utils/files';
 
 export function resolveConfigPath(path?: string): string {
     path ||= 'undefiedconfig.js';

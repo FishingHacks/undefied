@@ -1,0 +1,4 @@
+include "./use-js"
+
+.param __provided_externally__
+fn SC_exit int in end

@@ -1,0 +1,4 @@
+include "std/target"
+.pragma multiple
+
+.ifneq __TARGET__ __TARGET_JAVASCRIPT__ .error "Tried to include JS Code while compiling in a non-js target" .end

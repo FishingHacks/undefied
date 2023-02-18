@@ -1,6 +1,7 @@
 include "values"
 include "binaryparser"
 include "hexparser"
+include "decparser"
 include "fakes"
 include "std/utils"
 include "std/bool"
@@ -19,4 +20,12 @@ include "std/target"
     include "std/lnx/syscalltable"
     include "std/lnx/syscalls"
     include "std/lnx/socket"
+.end
+
+.ifeq __TARGET__ __TARGET_JAVASCRIPT__
+    include "std/js/allocation"
+    include "std/js/io"
+    include "std/js/syscalls"
+    include "std/js/utils"
+    include "std/js/use-js"
 .end

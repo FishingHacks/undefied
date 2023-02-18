@@ -1,3 +1,5 @@
+include "std/panic"
+
 .ifdef bswap16 undef bswap16 .end
 .ifdef bswap32 undef bswap32 .end
 .ifdef bswap64 undef bswap64 .end
@@ -14,7 +16,12 @@ inline fn bswap16 int -- int in
           "push rax"
         end
     .end
+    .ifeq __TARGET__ __TARGET_JAVASCRIPT__
+        const __defined 1 end
+        "No bswap support in js" panic
+    .end
     .ifndef __defined .error "Could not find assembly for the target" .end
+    undef __defined
 end
 
 inline fn bswap32 int -- int in
@@ -29,20 +36,30 @@ inline fn bswap32 int -- int in
           "push rax"
         end
     .end
+    .ifeq __TARGET__ __TARGET_JAVASCRIPT__
+        const __defined 1 end
+        "No bswap support in js" panic
+    .end
     .ifndef __defined .error "Could not find assembly for the target" .end
-end
-
+    undef __defined
+  end
+  
 inline fn bswap64 int -- int in
     .if __TARGET_LINUX_SUPPORT__
         .ifdef __defined undef __defined .end
         const __defined 1 end
         .param __supports_linux__
         assembly
-          "pop rbx"
-          "movzx eax, bx"
-          "bswap eax"
-          "push rax"
+            "pop rbx"
+            "movzx eax, bx"
+            "bswap eax"
+            "push rax"
         end
     .end
+    .ifeq __TARGET__ __TARGET_JAVASCRIPT__
+        const __defined 1 end
+        "No bswap support in js" panic
+    .end
     .ifndef __defined .error "Could not find assembly for the target" .end
+    undef __defined
 end

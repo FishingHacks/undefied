@@ -1,13 +1,13 @@
 export type TypeCheckStack = {
     loc: Loc;
-    type: Type;
+    type: EnhancedType;
 }[];
 
 export type Loc = [string, number, number];
 
 export interface Contract {
-    ins: Type[];
-    outs: Type[];
+    ins: { type: EnhancedType; loc: Loc }[];
+    outs: { type: EnhancedType; loc: Loc }[];
     used: boolean;
     prep: Operation;
     skip: Operation;
@@ -15,10 +15,15 @@ export interface Contract {
     index: number;
 }
 
+export interface Memory {
+    size: number;
+    type: Type;
+}
+
 export interface Program {
     ops: Operation[];
     mainop: number | undefined;
-    mems: Record<string, number>;
+    mems: Record<string, Memory>;
     contracts: Record<number, Contract>;
     functionsToRun: number[];
 }
@@ -28,6 +33,13 @@ export enum Type {
     Bool,
     Ptr,
     Any,
+}
+
+export interface EnhancedType {
+    types: Type[];
+    pointerCount: number;
+    typeName?: string;
+    filledWith?: EnhancedType[];
 }
 
 export enum Intrinsic {
@@ -176,21 +188,24 @@ export type Operation = {
       }
 );
 
-export type Token =
+export type Token = { loc: Loc } & (
     | {
-          loc: Loc;
           value: number;
           type: TokenType.Integer;
       }
     | {
-          loc: Loc;
           value: string;
           type:
               | TokenType.CString
               | TokenType.String
               | TokenType.Word
               | TokenType.Comment;
-      };
+      }
+    | {
+          type: TokenType.None;
+          value: string;
+      }
+);
 export enum TokenType {
     Word,
     String,
@@ -201,10 +216,17 @@ export enum TokenType {
     Comment,
 }
 
-export type compiler = (value: {
+export interface CompilerParameters {
     program: Program;
     optimizations: '0' | '1';
     filename?: string;
     external?: string[];
     dontRunFunctions?: boolean;
-}) => void;
+}
+export type CompileFunction = (parameters: CompilerParameters) => void;
+
+export interface Compiler {
+    compile: CompileFunction;
+    removeFiles: string[];
+    runProgram: (file: string, args: string[]) => void | Promise<void>;
+}

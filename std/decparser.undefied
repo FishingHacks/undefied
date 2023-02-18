@@ -1,0 +1,24 @@
+include "std/bool"
+
+.ifdef parseDecDig undef parseDecDig .end
+.ifdef parseDecVal undef parseDecVal .end
+.ifdef decstore .error "decstore is already defined :c" .end
+
+inline fn parseDecDig int -- int in
+dup '0' > over '9' < land if '0' +
+else drop 10 end
+end
+memory decstore 1 end
+
+fn parseDecVal ptr int -- int in
+0 decstore !8
+swap
+while
+    swap
+    dup @8 parseDecDig
+    decstore @8 2 * + decstore !8
+    cast(int) 1 + cast(ptr)
+    swap
+1 - end drop drop
+decstore @8
+end

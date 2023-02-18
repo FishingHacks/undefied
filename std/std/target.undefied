@@ -1,35 +1,47 @@
-.ifndef __TARGET_LINUX__ const __TARGET_LINUX_MACROS__ 0 end .end
+.ifndef __TARGET_LINUX__ const __TARGET_LINUX__ 0 end .end
 .ifndef __TARGET_LINUX_MACROS__ const __TARGET_LINUX_MACROS__ 1 end .end
+.ifndef __TARGET_JAVASCRIPT__ const __TARGET_JAVASCRIPT__ 2 end .end
 
 .ifdef __TARGET__
     # Linux Support
     .ifeq __TARGET__ __TARGET_LINUX_MACROS__ .ifndef __TARGET_LINUX_SUPPORT__ const __TARGET_LINUX_SUPPORT__ 1 cast(bool) end .end .end
     .ifeq __TARGET__ __TARGET_LINUX__ .ifndef __TARGET_LINUX_SUPPORT__ const __TARGET_LINUX_SUPPORT__ 1 cast(bool) end .end .end
+    .ifeq __TARGET__ __TARGET_JAVASCRIPT__ .ifndef __TARGET_BROWSER_SUPPORT__ const __TARGET_BROWSER_SUPPORT__ 1 cast(bool) end .end .end
 
     # Defaults
     .ifndef __TARGET_WINDOWS_SUPPORT__ const __TARGET_WINDOWS_SUPPORT__ 0 cast(bool) end .end
     .ifndef __TARGET_MACOS_SUPPORT__ const __TARGET_MACOS_SUPPORT__ 0 cast(bool) end .end
     .ifndef __TARGET_LINUX_SUPPORT__ const __TARGET_LINUX_SUPPORT__ 0 cast(bool) end .end
+    .ifndef __TARGET_BROWSER_SUPPORT__ const __TARGET_BROWSER_SUPPORT__ 0 cast(bool) end .end
 .end
 .ifndef __TARGET__
+    const __TARGET__ __TARGET_LINUX__ end
     const __TARGET_WINDOWS_SUPPORT__ 0 cast(bool) end
     const __TARGET_MACOS_SUPPORT__ 0 cast(bool) end
-    const __TARGET_LINUX_SUPPORT__ 0 cast(bool) end
+    const __TARGET_LINUX_SUPPORT__ 1 cast(bool) end
 .end
 
-.if __TARGET_LINUX_SUPPORT__ .ifdef __TARGET_SUPPORT__ undef __TARGET_SUPPORT__ .end inline fn __TARGET_SUPPORT__ in "Linux" end .end
-.if __TARGET_WINDOWS_SUPPORT__ .ifdef __TARGET_SUPPORT__ undef __TARGET_SUPPORT__ .end inline fn __TARGET_SUPPORT__ in "Windows" end .end
-.if __TARGET_MACOS_SUPPORT__ .ifdef __TARGET_SUPPORT__ undef __TARGET_SUPPORT__ .end inline fn __TARGET_SUPPORT__ in "MacOS" end .end
+.if __TARGET_LINUX_SUPPORT__ .ifdef __TARGET_SUPPORT__ undef __TARGET_SUPPORT__ .end inline fn __TARGET_SUPPORT__ -- ptr int in "Linux" end .end
+.if __TARGET_WINDOWS_SUPPORT__ .ifdef __TARGET_SUPPORT__ undef __TARGET_SUPPORT__ .end inline fn __TARGET_SUPPORT__ -- ptr int in "Windows" end .end
+.if __TARGET_MACOS_SUPPORT__ .ifdef __TARGET_SUPPORT__ undef __TARGET_SUPPORT__ .end inline fn __TARGET_SUPPORT__ -- ptr int in "MacOS" end .end
+.if __TARGET_BROWSER_SUPPORT__ .ifdef __TARGET_SUPPORT__ undef __TARGET_SUPPORT__ .end inline fn __TARGET_SUPPORT__ -- ptr int in "Browser" end .end
+
+.ifndef __TARGET_SUPPORT__ inline fn __TARGET_SUPPORT__ in -- ptr int end "Unknown" .end
 
 .ifeq __TARGET__ __TARGET_LINUX_MACROS__
-    .ifdef __TARGET_STR__ undef __TARGET_STR__ inline fn __TARGET_STR__ in "Linux Macros" end .end
-    .ifdef __TARGET_CSTR__ undef __TARGET_CSTR__ inline fn __TARGET_CSTR__ in "Linux Macros"c end .end
+    .ifdef __TARGET_STR__ undef __TARGET_STR__ inline fn __TARGET_STR__ -- ptr int in "Linux Macros" end .end
+    .ifdef __TARGET_CSTR__ undef __TARGET_CSTR__ inline fn __TARGET_CSTR__ -- ptr in "Linux Macros"c end .end
 .end
 
 .ifeq __TARGET__ __TARGET_LINUX__
-    .ifdef __TARGET_STR__ undef __TARGET_STR__ inline fn __TARGET_STR__ in "Linux" end .end
-    .ifdef __TARGET_CSTR__ undef __TARGET_CSTR__ inline fn __TARGET_CSTR__ in "Linux"c end .end
+    .ifdef __TARGET_STR__ undef __TARGET_STR__ inline fn __TARGET_STR__ -- ptr int in "Linux" end .end
+    .ifdef __TARGET_CSTR__ undef __TARGET_CSTR__ inline fn __TARGET_CSTR__ -- ptr in "Linux"c end .end
 .end
 
-.ifndef __TARGET_CSTR__ inline fn __TARGET_CSTR__ in "Unknown"c end .end
-.ifndef __TARGET_STR__ inline fn __TARGET_STR__ in "Unknown" end .end
+.ifeq __TARGET__ __TARGET_JAVASCRIPT__
+    .ifdef __TARGET_STR__ undef __TARGET_STR__ inline fn __TARGET_STR__ -- ptr int in "JavaScript" end .end
+    .ifdef __TARGET_CSTR__ undef __TARGET_CSTR__ inline fn __TARGET_CSTR__ -- ptr in "JavaScript"c end .end
+.end
+
+.ifndef __TARGET_CSTR__ inline fn __TARGET_CSTR__ -- ptr in "Unknown"c end .end
+.ifndef __TARGET_STR__ inline fn __TARGET_STR__ -- ptr int in "Unknown" end .end

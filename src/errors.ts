@@ -1,8 +1,9 @@
 import chalk from 'chalk';
 import { format } from 'util';
 import { INFO } from './constants';
-import { Loc, TokenType, Type } from './types';
-import { arrayify, humanTokenType, humanType } from './utils';
+import { EnhancedType, Loc, TokenType } from './types';
+import { humanTokenType } from './utils/tokens';
+import { enhancedTypeEqual, humanEnhancedType } from './utils/types';
 
 export function compilerError(
     location: Loc[],
@@ -47,14 +48,14 @@ export function compilerInfo(
     );
 }
 
-export function expected(loc: Loc, type: Type, specified?: Type) {
-    if (type !== specified)
+export function expected(loc: Loc, type: EnhancedType, specified?: EnhancedType) {
+    if (!specified || !enhancedTypeEqual(type, specified))
         compilerError(
             [loc],
             'Expected ' +
-                humanType(type) +
+                humanEnhancedType(type) +
                 ', but found ' +
-                (specified === undefined ? 'nothing' : humanType(type))
+                (specified === undefined ? 'nothing' : humanEnhancedType(type))
         );
 }
 export function expectedTT(loc: Loc, type: TokenType, specified: TokenType|undefined) {

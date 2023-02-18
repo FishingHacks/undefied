@@ -1,16 +1,18 @@
-import { join } from 'path';
-import * as target_linux from './compile';
-import * as target_linux_macro from './compile_with_macros';
+import path, { join } from 'path';
+import * as target_linux from './compilers/linux';
+import * as target_linux_macro from './compilers/linux-macro';
 import { crossReferenceProgram } from './crossreferencing';
 import { error, info } from './errors';
 import { generateTokens } from './generateTokens';
 import { dce } from './optimizations/deadCodeElimination';
 import { parseProgram } from './parser';
 import { typecheckProgram } from './typecheck';
-import { cmd_echoed, exists, isFile } from './utils';
-import { rmSync } from 'fs';
-import { compiler, Loc, Token, TokenType } from './types';
+import { existsSync, rmSync } from 'fs';
+import { Compiler, Loc, Token, TokenType } from './types';
 import { timer } from './timer';
+import { exists, isFile } from './utils/files';
+import { cmd_echoed } from './utils/general';
+import { getCompiler, targetId } from './targets';
 
 export default async function compileFile(
     file: string,
@@ -22,7 +24,7 @@ export default async function compileFile(
         keepFiles = false,
         dev = false,
         dontRunFunctions,
-        external,
+        external = [],
         libs = [],
         predefConsts = {},
     }: {
@@ -40,9 +42,70 @@ export default async function compileFile(
     typecheckingOnly: boolean,
     args?: string[]
 ) {
-    const end = timer.start('compileFile("' + file + '")');
+    const end = timer.start('compileFile() | ' + file + ' for target ' + target);
+
+    const compiler = getCompiler(target);
+    if (!compiler)
+        error('No compiler for the specified target found (' + target + ')');
+    predefConsts.__TARGET__ = targetId(target);
+    args ||= [];
+    while (true) {
+        const arg = args[0];
+        if (!arg) break;
+        if (
+            !arg.startsWith('-d') &&
+            !arg.startsWith('-D') &&
+            !arg.startsWith('-l') &&
+            !arg.startsWith('-L') &&
+            !arg.startsWith('-i') &&
+            !arg.startsWith('-I') &&
+            !arg.startsWith('--d') &&
+            !arg.startsWith('--D') &&
+            !arg.startsWith('--l') &&
+            !arg.startsWith('--L') &&
+            !arg.startsWith('--i') &&
+            !arg.startsWith('--I')
+        )
+            break;
+        const newArg = arg[1] === '-' ? arg.substring(2) : arg.substring(1);
+        if (newArg.length < 2)
+            error('Include, Libinclude or Define have to have a path or value');
+        if (newArg[0] === 'l' || newArg[0] === 'L')
+            libs.push(newArg.substring(1));
+        else if (newArg[0] === 'i' || newArg[0] === 'I')
+            external.push(
+                newArg[1] === '/'
+                    ? newArg.substring(1)
+                    : join(process.cwd(), newArg.substring(1))
+            );
+        else if (newArg[1] === 'd' || newArg[1] === 'D') {
+            const split = newArg.substring(1).split('=');
+            if (split.length < 2)
+                error('You have to defined a value for ' + split[0]);
+            predefConsts[split[0]] = Number(split.slice(1).join('='));
+            if (isNaN(predefConsts[split[0]])) {
+                error(
+                    "Error: Can't evaluate " +
+                        split.slice(1).join('=') +
+                        ' to a number'
+                );
+            }
+        } else error('Could not parse ' + newArg);
+        args.shift();
+    }
+
+    for (const f of external) {
+        if (!existsSync(f))
+            error(
+                'External Library %s could not be located (Checked: %s)',
+                f.substring(f.lastIndexOf('/') + 1),
+                f
+            );
+    }
+
     const tokens: Token[] = [];
     const includeLoc: Loc = ['<included-libs>', 0, 0];
+
     for (const l of libs) {
         tokens.push({
             loc: includeLoc,
@@ -56,40 +119,6 @@ export default async function compileFile(
         });
     }
 
-    const compiler = getCompiler(target);
-    if (!compiler)
-        error('No compiler for the specified target found (' + target + ')');
-    predefConsts.__TARGET_LINUX__ = 0;
-    predefConsts.__TARGET_LINUX_MACROS__ = 1;
-    predefConsts.__TARGET__ = makeTarget(target);
-    args ||= [];
-    while (true) {
-        const arg = args[0];
-        if (!arg) break;
-        if (
-            !arg.startsWith('-D') &&
-            !arg.startsWith('--D') &&
-            !arg.startsWith('-d') &&
-            !arg.startsWith('--d')
-        )
-            break;
-        const newArgs = (
-            arg.startsWith('-D') || arg.startsWith('-d')
-                ? arg.substring(2)
-                : arg.substring(3)
-        ).split('=');
-        predefConsts[newArgs[0]] = Number(newArgs.slice(1).join('='));
-        if (isNaN(predefConsts[newArgs[0]])) {
-            error(
-                "Error: Can't evaluate " +
-                    newArgs.slice(1).join('=') +
-                    ' to a number'
-            );
-            break;
-        }
-        args.shift();
-    }
-
     if (!file.endsWith('.undefied'))
         error('Error: Only .undefied files are allowed');
     if (!(await exists(file)) || !(await isFile(file)))
@@ -99,7 +128,8 @@ export default async function compileFile(
         tokens,
         Number(optimizations),
         predefConsts,
-        dev
+        dev,
+        typecheckingOnly
     );
     const program = crossReferenceProgram(parsed);
     if (!unsafe) typecheckProgram(program, dev);
@@ -116,16 +146,8 @@ export default async function compileFile(
         });
         if (!keepFiles) cleanFiles(file, compiler.removeFiles, dev);
         end();
-        if (run)
-            cmd_echoed(
-                `"${
-                    !file.startsWith('/') ? join(process.cwd(), file) : file
-                }" ${args
-                    .map((el) => '"' + el.replaceAll('"', '\\"') + '"')
-                    .join(' ')}`,
-                'Program Output'
-            );
-    }
+        if (run) await compiler.runProgram(file, args);
+    } else end();
 }
 
 function cleanFiles(filename: string, files: string[], dev: boolean) {
@@ -136,18 +158,4 @@ function cleanFiles(filename: string, files: string[], dev: boolean) {
         rmSync(filename + f);
     }
     end();
-}
-
-function getCompiler(
-    target: string
-): { compile: compiler; removeFiles: string[] } | undefined {
-    if (target === 'linux') return target_linux;
-    else if (target === 'linux-macro') return target_linux_macro;
-    return;
-}
-
-function makeTarget(target: string) {
-    if (target === 'linux') return 0;
-    else if (target === 'linux-macro') return 1;
-    return 0;
 }

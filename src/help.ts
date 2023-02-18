@@ -27,9 +27,12 @@
 ├───────────────────────────────────────┼────────────────────────────────────┤
 │ undefied check-std|typecheck-std      │ Typecheck the Standard Library     │ 
 └──« Version vxx.x.x  »─────────────────┴────────────────────────────────────┘
+
+
 */
 
 import chalk from 'chalk';
+import { targetList } from './targets';
 
 export default function helpMenu(version: string) {
     return (
@@ -112,10 +115,8 @@ export default function helpMenu(version: string) {
         '[option]: Option is optional\n\n' +
         chalk.bold(chalk.red('Available Targets')) +
         '\n' +
-        'linux\n' +
-        'linux-macro\n\n' +
-        chalk.bold(
-            'Profiler: https://github.com/FishingHacks/simple-profiler'
-        )
-    );
+        targetList.join('\n') +
+        '\n\n' +
+        chalk.bold('Profiler: https://github.com/FishingHacks/simple-profiler')
+    ).split('\n').map(el => '   ' + el).join('\n');
 }

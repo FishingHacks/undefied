@@ -1,0 +1,285 @@
+(() => {
+    function isString(arg) {
+        return typeof arg === 'string';
+    }
+    function isUndefined(arg) {
+        return typeof arg === 'undefined';
+    }
+    function inspect(obj, opts) {
+        // default options
+        var ctx = {
+            seen: [],
+            stylize: stylizeNoColor,
+        };
+        // legacy...
+        if (arguments.length >= 3) ctx.depth = arguments[2];
+        if (arguments.length >= 4) ctx.colors = arguments[3];
+        if (isBoolean(opts)) {
+            // legacy...
+            ctx.showHidden = opts;
+        } else if (opts) {
+            // got an "options" object
+            exports._extend(ctx, opts);
+        }
+        // set default options
+        if (isUndefined(ctx.showHidden)) ctx.showHidden = false;
+        if (isUndefined(ctx.depth)) ctx.depth = 2;
+        if (isUndefined(ctx.colors)) ctx.colors = false;
+        if (isUndefined(ctx.customInspect)) ctx.customInspect = true;
+        if (ctx.colors) ctx.stylize = stylizeWithColor;
+        return formatValue(ctx, obj, ctx.depth);
+    }
+    function isNull(arg) {
+        return arg === null;
+    }
+    function isObject(arg) {
+        return typeof arg === 'object' && arg !== null;
+    }
+
+    function highlight(
+        text,
+        currentForeground,
+        currentBackground,
+        italic,
+        underline,
+        strikethrough,
+        bold
+    ) {
+        const elements = [];
+
+        const split = text.split('\033[');
+        const span = document.createElement('span');
+        span.style.color = currentForeground;
+        span.style.backgroundColor = currentBackground;
+        span.style.fontStyle = italic ? 'italic' : 'normal';
+        span.style.textDecoration = strikethrough
+            ? 'line-through'
+            : underline
+            ? 'underline'
+            : 'none';
+        span.style.fontWeight = bold ? 'bold' : 'normal';
+        span.textContent = split[0];
+        elements.push(span);
+
+        for (let i = 1; i < split.length; i++) {
+            const currentSplit = split[i];
+            const styler = currentSplit.substring(0, currentSplit.indexOf('m'));
+            const text = currentSplit.substring(currentSplit.indexOf('m') + 1);
+
+            if (styler.startsWith('38')) {
+                const [_38, _2, r, g, b] = styler.split(';');
+                if (r && g && b) {
+                    currentForeground =
+                        '#' +
+                        [r, g, b]
+                            .map((el) =>
+                                Number(el).toString(16).substring(0, 2)
+                            )
+                            .map((el) => (el.length === 1 ? ' ' + el : ''))
+                            .join('');
+                }
+            } else if (styler.startsWith('48')) {
+                const [_38, _2, r, g, b] = styler.split(';');
+                if (r && g && b) {
+                    currentBackground =
+                        '#' +
+                        [r, g, b]
+                            .map((el) =>
+                                Number(el).toString(16).substring(0, 2)
+                            )
+                            .map((el) => (el.length === 1 ? ' ' + el : ''))
+                            .join('');
+                }
+            } else if (styler === '39') currentForeground = 'darkgray'; // RESET
+            else if (styler === '30') currentForeground = 'black';
+            else if (styler === '34') currentForeground = 'dodgerblue';
+            else if (styler === '36') currentForeground = 'darkcyan';
+            else if (styler === '90') currentForeground = 'gray';
+            else if (styler === '32') currentForeground = 'darkgreen';
+            else if (styler === '35') currentForeground = 'darkmagenta';
+            else if (styler === '31') currentForeground = 'darkred';
+            else if (styler === '37') currentForeground = 'darkgray';
+            else if (styler === '33') currentForeground = '#ca8a04';
+            else if (styler === '94') currentForeground = 'lightskyblue';
+            else if (styler === '96') currentForeground = 'cyan';
+            else if (styler === '92') currentForeground = 'green';
+            else if (styler === '95') currentForeground = 'magenta';
+            else if (styler === '91') currentForeground = 'red';
+            else if (styler === '97') currentForeground = 'lightgray';
+            else if (styler === '93') currentBackground = '#facc15';
+            // background
+            else if (styler === '49') currentBackground = '#171717'; // RESET
+            else if (styler === '40') currentBackground = '#171717';
+            else if (styler === '44') currentBackground = 'dodgerblue';
+            else if (styler === '46') currentBackground = 'darkcyan';
+            else if (styler === '100') currentBackground = 'gray';
+            else if (styler === '42') currentBackground = 'darkgreen';
+            else if (styler === '45') currentBackground = 'darkmagenta';
+            else if (styler === '41') currentBackground = 'darkred';
+            else if (styler === '47') currentBackground = 'darkgray';
+            else if (styler === '43') currentBackground = '#ca804';
+            else if (styler === '104') currentBackground = 'lightskyblue';
+            else if (styler === '106') currentBackground = 'cyan';
+            else if (styler === '102') currentBackground = 'green';
+            else if (styler === '105') currentBackground = 'magenta';
+            else if (styler === '101') currentBackground = 'red';
+            else if (styler === '107') currentBackground = 'lightgray';
+            else if (styler === '103') currentBackground = '#facc15';
+            // text style
+            else if (styler === '22') bold = false; // RESET
+            else if (styler === '23') italic = false; // RESET
+            else if (styler === '29') strikethrough = false; // RESET
+            else if (styler === '24') underline = false; // RESET
+            else if (styler === '3') italic = true;
+            else if (styler === '1') bold = true;
+            else if (styler === '9') {
+                underline = false;
+                strikethrough = true;
+            } else if (styler === '4') {
+                underline = true;
+                strikethrough = false;
+            }
+            const span = document.createElement('span');
+            span.style.color = currentForeground;
+            span.style.backgroundColor = currentBackground;
+            span.style.fontStyle = italic ? 'italic' : 'normal';
+            span.style.textDecoration = strikethrough
+                ? 'line-through'
+                : underline
+                ? 'underline'
+                : 'none';
+            span.style.fontWeight = bold ? 'bold' : 'normal';
+            span.textContent = text;
+            elements.push(span);
+        }
+
+        return {
+            currentBackground,
+            currentForeground,
+            italic,
+            strikethrough,
+            bold,
+            underline,
+            elements,
+        };
+    }
+
+    document.body.style.margin = '0px';
+    document.body.style.padding = '0px';
+    document.body.style.overflowX = 'hidden';
+    document.body.style.overflowY = 'hidden';
+
+    function generateFancyness(element) {
+        const heading = document.createElement('span');
+        heading.textContent = 'Console\n';
+        heading.style.fontWeight = 'bold';
+        heading.style.fontSize = '1.5rem';
+        element.append(heading);
+        const elements = [
+            document.createElement('span'),
+            document.createElement('span'),
+            document.createElement('span'),
+            document.createElement('span'),
+        ];
+        elements[0].style.fontWeight = 'bold';
+        elements[1].style.fontWeight = 'bold';
+        elements[3].style.textDecoration = 'underlined';
+        elements[1].style.color = 'lightskyblue';
+        elements[3].style.color = 'lightskyblue';
+        elements[0].style.color = 'green';
+        elements[2].style.color = 'dodgerblue';
+        elements[0].textContent = 'root@linux ';
+        elements[1].textContent = '~/undefied $ ';
+        elements[2].textContent = './run.sh ';
+        elements[3].textContent = './undefiedProgram.js\n';
+        element.append(...elements);
+    }
+
+    var formatRegExp = /%[sdj%]/g;
+    function format(f) {
+        if (!isString(f)) {
+            var objects = [];
+            for (var i = 0; i < arguments.length; i++) {
+                objects.push(inspect(arguments[i]));
+            }
+            return objects.join(' ');
+        }
+
+        var i = 1;
+        var args = arguments;
+        var len = args.length;
+        var str = String(f).replace(formatRegExp, function (x) {
+            if (x === '%%') return '%';
+            if (i >= len) return x;
+            switch (x) {
+                case '%s':
+                    return String(args[i++]);
+                case '%d':
+                    return Number(args[i++]);
+                case '%j':
+                    try {
+                        return JSON.stringify(args[i++]);
+                    } catch (_) {
+                        return '[Circular]';
+                    }
+                default:
+                    return x;
+            }
+        });
+        for (var x = args[i]; i < len; x = args[++i]) {
+            if (isNull(x) || !isObject(x)) {
+                str += ' ' + x;
+            } else {
+                str += ' ' + inspect(x);
+            }
+        }
+        return str;
+    }
+
+    let element = document.getElementsByClassName('console')[0];
+    if (!element && !window.logToConsole) {
+        element = document.createElement('pre');
+        element.classList.add('console');
+        element.style.backgroundColor = '#171717';
+        element.style.padding = '.5rem';
+        element.style.color = 'darkgray';
+        element.style.width = 'calc(100vw - 1rem)';
+        element.style.height = 'calc(100vh - 1rem)';
+        element.style.margin = '0px';
+        element.style.overflow = 'scroll';
+        generateFancyness(element);
+        document.body.append(element);
+    }
+    let styles = {
+        fg: 'darkgray',
+        bg: '#171717',
+        italic: false,
+        underline: false,
+        strikethrough: false,
+        bold: false,
+    };
+    if (!window.logToConsole) {
+        console.log = function log(...args) {
+            const str = format(...args);
+            const newStyles = highlight(
+                str,
+                styles.fg,
+                styles.bg,
+                styles.italic,
+                styles.underline,
+                styles.strikethrough,
+                styles.bold
+            );
+            styles.bg = newStyles.currentBackground;
+            styles.fg = newStyles.currentForeground;
+            styles.bold = newStyles.bold;
+            styles.italic = newStyles.italic;
+            styles.strikethrough = newStyles.strikethrough;
+            styles.underline = newStyles.underline;
+            element.append(
+                ...newStyles.elements.filter((el) => el.textContent.length > 0)
+            );
+        };
+        console.error = console.log;
+    }
+})();

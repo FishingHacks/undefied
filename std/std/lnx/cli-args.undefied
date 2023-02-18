@@ -9,7 +9,7 @@ fn nthArg int -- ptr in 8 * argv cast(int) + cast(ptr) @64 cast(ptr) end
 memory argc 8 end
 
 .param __run_function__
-fn __cli_args__setup___$$1 in
-argv 0 8 - ptr+ @ argc !
+.param __fn_anon__
+fn cli-argument-setup in
+argv 0 8 - ptr+ @8 argc !8
 end
-undef __cli_args__setup___$$1

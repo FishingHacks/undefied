@@ -86,7 +86,7 @@ export function crossReferenceProgram(program: Program): Program {
                     )
                         compilerError(
                             [_op.location],
-                            'End can only end `if` or `while` blocks, found `' +
+                            'End can only end `if`, `else`, `while` or `namespace` blocks, found `' +
                                 _op.token.value +
                                 '`'
                         );

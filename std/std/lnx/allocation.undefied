@@ -67,14 +67,14 @@ fn malloc
 in
   dup 0 swap 0 1 - swap MAP_PRIVATE MAP_ANONYMOUS or swap PROT_READ PROT_WRITE or swap 1 + nullptr SC_mmap
   dup cast(int) 0 1 - = if drop drop nullptr return end
-  swap over !
+  swap over !8
   cast(int) 1 + cast(ptr)
 end
 
 fn free ptr in
   dup nullptr = if drop return end
   cast(int) 1 - cast(ptr)
-  dup @
+  dup @8
   swap SC_munmap drop
 end
 

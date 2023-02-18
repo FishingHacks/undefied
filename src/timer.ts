@@ -129,6 +129,7 @@ function getFunctionDescription(): functionDescriptor {
     const fn = splitStack[4].substring(7); // skip "    at "
     const fnWithLoc = fn.startsWith('async') ? fn.substring(6) : fn;
     const [name, loc] = fnWithLoc.split(' ');
+    if (!name || !loc) return { name: 'unknown function', location: '' };
     return { name, location: loc.substring(1, loc.length - 1) };
 }
 function getFilename(path: string) {

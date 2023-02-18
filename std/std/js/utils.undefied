@@ -1,0 +1,8 @@
+include "./use-js"
+
+.param __provided_externally__
+fn awaitNextRender in end
+.param __provided_externally__
+fn sleep int in end
+.param __provided_externally__
+fn random int -- int in end

@@ -3,12 +3,13 @@ import assert from 'assert';
 import { open, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { format } from 'util';
-import { compilerError, compilerWarn } from './errors';
-import { OpType, Keyword, Type, Intrinsic, Program } from './types';
-import { cmd_echoed, hasParameter, humanLocation, humanType } from './utils';
+import { compilerError, compilerWarn } from '../errors';
+import { OpType, Keyword, Type, Intrinsic, Program } from '../types';
 import * as crypto from 'crypto';
 import chalk from 'chalk';
-import { timer } from './timer';
+import { timer } from '../timer';
+import { cmd_echoed, hasParameter, humanLocation } from '../utils/general';
+import { humanType } from '../utils/types';
 
 function generateStringName(str: string): string {
     return crypto.randomUUID().replaceAll('-', '');
@@ -79,7 +80,7 @@ export async function compile({
 
     if (!program.mainop) {
         const asmEnd = timer.start('writing assembly');
-        
+
         await write('BITS 64\n');
         await write('segment .text\n');
         await write('global _start\n');
@@ -140,14 +141,14 @@ export async function compile({
             await write('\n');
             await write(';;   -> Ins: ');
             if (ins.length < 1) await write('none');
-            else await write(ins.map(humanType).join(', '));
+            else await write(ins.map(el => humanType(el.type)).join(', '));
             await write('\n');
             await write(';;   -> Outs: ');
             if (outs.length < 1) await write('none');
-            else await write(outs.map(humanType).join(', '));
+            else await write(outs.map(el => humanType(el.type)).join(', '));
             await write('\n\n');
         }
-        functionMetadataGenEnd();    
+        functionMetadataGenEnd();
     }
 
     const addrLabelCollectionEnd = timer.start('address label collection');
@@ -175,7 +176,6 @@ export async function compile({
         else if (op.type === OpType.Call) req_addrs.push(op.operation);
     }
     addrLabelCollectionEnd();
-
 
     const printAsmEnd = timer.start('writing assembly for print');
     await write('BITS 64\n');
@@ -220,9 +220,9 @@ export async function compile({
     await write('    mov [ret_stack_rsp], rax\n');
     //#endregion printfunc
     printAsmEnd();
-    
+
     const asmEnd = timer.start('writing assembly');
-    
+
     let ip = 0;
     while (ip < program.ops.length) {
         const op = program.ops[++ip];
@@ -293,12 +293,13 @@ export async function compile({
                     op.functionName
                 );
         } else if (op.type === OpType.PrepFn) {
-            await write(`${op.functionName}_${getId(op.functionName)}:\n`);
+            if (!hasParameter(op, ['__fn_anon__', '__fn_anonymous__']))
+                await write(`${op.functionName}_${getId(op.functionName)}:\n`);
             await write(
                 '     ;; ' +
-                    program.contracts[ip].ins.map(humanType).join(' ') +
+                    program.contracts[ip].ins.map(el => humanType(el.type)).join(' ') +
                     ' -- ' +
-                    program.contracts[ip].outs.map(humanType).join(' ') +
+                    program.contracts[ip].outs.map(el => humanType(el.type)).join(' ') +
                     '\n'
             );
             await useMacro('prepfn', op.functionName);
@@ -597,15 +598,15 @@ export async function compile({
     await write('    ret_stack: resb 4096\n');
     await write('    ret_stack_end:\n');
     await write('    args_ptr: resq 1\n');
-    for (const [name, sz] of Object.entries(program.mems)) {
+    for (const [name, { size }] of Object.entries(program.mems)) {
         if (usedMems.includes(name))
-            await write('    mem_' + name + ': resb ' + sz + '\n');
+            await write('    mem_' + name + ': resb ' + size + '\n');
     }
 
     for (const f of external) {
-        await write('%include "%s"\n', JSON.stringify(join('', f)));
+        await write('%%include "%s"\n', JSON.stringify(join('', f)));
     }
-    
+
     asmEnd();
 
     await out.close();
@@ -653,4 +654,4 @@ function generateMacros(intrinsics_used: (keyof typeof macros)[]) {
     return usedMacros.join('\n\n');
 }
 
-export const removeFiles: string[] = ['.o', '.asm'];
+export { removeFiles, runProgram } from './linux';

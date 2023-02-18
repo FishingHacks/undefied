@@ -34,6 +34,11 @@ dist
 .fusebox/
 bin/*.js
 src/*.js
+src/*/*.js
+src/*/*/*.js
+!src/compilers/interpreter/utils.js
+!src/compilers/interpreter/console.js
+!src/compilers/interpreter/syscall.js
 *.o
 
 code/*

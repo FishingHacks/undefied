@@ -103,35 +103,39 @@ const sizeof(sockaddr_in.sin_family) 2 end
 const sizeof(sockaddr_in.sin_port) 2 end
 const sizeof(sockaddr_in.sin_addr) 4 end
 
-const INADDR_LOCAL 16777343 end
+namespace Socket
 
-inline fn listen int int -- int in SYS_listen syscall2 end
+ const INADDR_LOCAL 16777343 end
 
-inline fn bind int ptr int -- int in SYS_bind syscall3 end
+  inline fn listen int int -- int in SYS_listen syscall2 end
 
-inline fn accept int ptr ptr -- int in SYS_accept syscall3 end
+  inline fn bind int ptr int -- int in SYS_bind syscall3 end
 
-inline fn read int ptr int -- int in SYS_read syscall3 end
+  inline fn accept int ptr ptr -- int in SYS_accept syscall3 end
 
-inline fn close int -- int in SYS_close syscall1 end
+  inline fn read int ptr int -- int in SYS_read syscall3 end
 
-inline fn sendto int ptr int int ptr int -- int in SYS_sendto syscall6 end
+  inline fn close int -- int in SYS_close syscall1 end
 
-memory tmp_send_mem sizeof(u64) 4 * end
+  inline fn sendto int ptr int int ptr int -- int in SYS_sendto syscall6 end
 
-inline fn send int ptr int int -- int in
-  cast(int) tmp_send_mem sizeof(u64) 3 * ptr+ !64
-  cast(int) tmp_send_mem sizeof(u64) 1 * ptr+ !64
-  cast(int) tmp_send_mem sizeof(u64) 2 * ptr+ !64
-  cast(int) tmp_send_mem sizeof(u64) 0 * ptr+ !64
-  0 nullptr
-  tmp_send_mem sizeof(u64) 3 * ptr+ @64 cast(int)
-  tmp_send_mem sizeof(u64) 2 * ptr+ @64 cast(int)
-  tmp_send_mem sizeof(u64) 1 * ptr+ @64 cast(ptr)
-  tmp_send_mem sizeof(u64) 0 * ptr+ @64 cast(int)
-  sendto
-end
+  memory tmp_send_mem sizeof(u64) 4 * end
 
-inline fn htons int -- int in
-  bswap16
+  inline fn send int ptr int int -- int in
+    cast(int) tmp_send_mem sizeof(u64) 3 * ptr+ !64
+    cast(int) tmp_send_mem sizeof(u64) 1 * ptr+ !64
+    cast(int) tmp_send_mem sizeof(u64) 2 * ptr+ !64
+    cast(int) tmp_send_mem sizeof(u64) 0 * ptr+ !64
+    0 nullptr
+    tmp_send_mem sizeof(u64) 3 * ptr+ @64 cast(int)
+    tmp_send_mem sizeof(u64) 2 * ptr+ @64 cast(int)
+    tmp_send_mem sizeof(u64) 1 * ptr+ @64 cast(ptr)
+    tmp_send_mem sizeof(u64) 0 * ptr+ @64 cast(int)
+    Socket::sendto
+  end
+
+  inline fn htons int -- int in
+    bswap16
+  end
+
 end

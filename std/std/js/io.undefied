@@ -1,0 +1,15 @@
+include "./use-js"
+.ifdef FD_stdio undef FD_stdio .end
+.ifdef FD_stderr undef FD_stderr .end
+.ifdef fputs undef fputs .end
+
+const FD_stdio 1 end
+const FD_stderr 2 end
+
+.param __provided_externally__
+fn fputs int ptr int in end
+
+.param __provided_externally__
+fn readPrompt ptr int -- ptr int in end
+.param __provided_externally__
+fn readLine -- ptr int in end

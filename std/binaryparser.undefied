@@ -10,14 +10,15 @@ end
 memory binstore 1 end
 
 fn parseBinVal ptr int -- int in
-0 binstore !
+0 binstore !8
 swap
 while
     swap
-    dup @ parseBinDig
-    binstore @ 2 * + binstore !
+    dup @8 parseBinDig
+    binstore @8 2 * + binstore !8
     cast(int) 1 + cast(ptr)
     swap
 1 - end drop drop
-binstore @
+binstore @8
 end
+

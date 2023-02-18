@@ -1,11 +1,12 @@
 include "std/target"
 .if __TARGET_LINUX_SUPPORT__ include "std/lnx/io" .end
+.ifeq __TARGET__ __TARGET_JAVASCRIPT__ include "std/js/io" .end
 
 include "std/int"
 
 
-.ifndef FD_stdio const FD_stdio 0 end .end
-.ifndef FD_stderr const FD_stderr 1 end .end
+.ifndef FD_stdio const FD_stdio 1 end .end
+.ifndef FD_stderr const FD_stderr 2 end .end
 .ifndef fputs .error "No fputs implementation for the current target found" .end
 
 .ifdef puts undef puts .end
@@ -27,7 +28,7 @@ inline fn eputs ptr int in FD_stderr fputs end
 
 memory pcc_mem 1 end
 fn printCharCode int in
-    pcc_mem !
+    pcc_mem !8
     1 pcc_mem puts
 end
 

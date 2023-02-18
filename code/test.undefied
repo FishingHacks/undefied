@@ -28,11 +28,11 @@ end
 fn printargs in
   1
   while
-    dup argc @ > if drop return end
+    dup argc @8 > if drop return end
     "Argument no " puts
     dup putu
     " : " puts
-    dup 1 - nthArg cstrToStr puts "\n" puts
+    dup 1 - nthArg CStr::toStr puts "\n" puts
     1 +
   end drop
 end
@@ -46,7 +46,7 @@ fn maina in
   
   "Exit\n" puts
   
-  "Arguments : " puts argc @ print
+  "Arguments : " puts argc @64 print
   printargs
 
   
@@ -65,9 +65,12 @@ fn maina in
   "ff" parseHexVal print
   "ffff" parseHexVal print
 
-  "aaa" "aaa" streq printb
+  "aaa" "aaa" Str::eq printb
+  "\n" puts
+  "12345678" 2 substr puts
 end
 
 fn mainb in end
+
 
 fn main in maina end

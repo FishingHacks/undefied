@@ -26,20 +26,20 @@ import {
     Token,
     Program,
     Operation,
+    Memory,
+    EnhancedType,
 } from './types';
-import {
-    checkExistence,
-    hasParameter,
-    humanTokenType,
-    humanType,
-    valid,
-} from './utils';
+import { checkExistence } from './utils/files';
+import { valid } from './utils/general';
+import { humanTokenType } from './utils/tokens';
+import { $humanType, createEnhancedType, exactMatch } from './utils/types';
 
 export async function parseProgram(
     tokens: Token[],
     optimizations: number,
     predefConsts: Record<string, number>,
-    dev: boolean
+    dev: boolean,
+    check: boolean
 ): Promise<Program> {
     const end = timer.start('parseProgram()');
     const functions: Record<string, number> = {};
@@ -94,6 +94,10 @@ export async function parseProgram(
         __DEV__: {
             type: Type.Bool,
             value: dev ? 1 : 0,
+        },
+        __TYPECHECK__: {
+            type: Type.Bool,
+            value: check ? 1 : 0,
         },
     };
     const included: string[] = [];
@@ -200,6 +204,7 @@ export async function parseProgram(
             'while',
             'memory',
             'fn',
+            'namespace',
         ].includes(name);
     }
 
@@ -238,6 +243,7 @@ export async function parseProgram(
         '.if',
         '.ifn',
         '.param',
+        'namespace',
     ];
 
     // what words should not reset the parameters
@@ -270,6 +276,11 @@ export async function parseProgram(
 
     while (ip < tokens.length) {
         const token = tokens[ip];
+        if (!token) break;
+        if (token.type === TokenType.None) {
+            ip++;
+            continue;
+        }
         if (token.type !== TokenType.Word && nextParams.length > 0)
             nextParams = [];
         if (
@@ -336,7 +347,11 @@ export async function parseProgram(
 
             while (ip < tokens.length) {
                 const tok = tokens[ip];
-                if (tok.type === TokenType.Word && tok.value === 'end') break;
+                if (
+                    tok.type === TokenType.Word &&
+                    (tok.value === 'end' || tok.value === 'in')
+                )
+                    break;
                 else if (tok.type === TokenType.Integer) toks.push(tok);
                 else if (tok.type !== TokenType.Word)
                     compilerError(
@@ -470,13 +485,37 @@ export async function parseProgram(
                     [end.loc],
                     'Expected Word but got ' + humanTokenType(end.type)
                 );
-            if (end.value !== 'end')
+
+            let type: Type = Type.Any;
+            if (end.value === 'in') {
+                const _type = tokens[++ip];
+                expectedTT(_type?.loc || end.loc, TokenType.Word, _type?.type);
+                if (
+                    typeNames[_type.value as keyof typeof typeNames] ===
+                    undefined
+                )
+                    compilerError(
+                        [_type.loc],
+                        _type.value + ' is not a valid type'
+                    );
+                else type = typeNames[_type.value as keyof typeof typeNames];
+                type;
+                const _end = tokens[++ip];
+                doesntmatchTT(
+                    _end?.loc || _type.loc,
+                    TokenType.Word,
+                    _end?.type,
+                    'end',
+                    _end?.value
+                );
+            } else if (end.value !== 'end')
                 compilerError(
                     [end.loc],
                     'Expected `end` Keyword, but got `' + end.value + '`'
                 );
             if (isNaN(Number(size))) assert(false, 'unreachable');
-            program.mems[name.value] = Number(size);
+            const memory: Memory = { size: Number(size), type };
+            program.mems[name.value] = memory;
         } else if (token.type === TokenType.Word && token.value === 'fn') {
             isInFunction = true;
             ip++;
@@ -499,9 +538,40 @@ export async function parseProgram(
                     'Redefinition of memory, function, constant, structs, Intrinsic or Keyword is not allowed'
                 );
 
-            const ins: Type[] = [];
-            const outs: Type[] = [];
+            const ins: { type: EnhancedType; loc: Loc }[] = [];
+            const outs: { type: EnhancedType; loc: Loc }[] = [];
             let isAtIns = true;
+            function pushType(type: string, loc: Loc) {
+                const arr = isAtIns ? ins : outs;
+                const typeByName = typeNames[type as keyof typeof typeNames];
+                if (typeByName !== undefined)
+                    return arr.push({
+                        type: createEnhancedType(typeByName),
+                        loc,
+                    });
+                const struct = structs[type];
+                if (struct !== undefined)
+                    return arr.push({
+                        type: createEnhancedType(
+                            struct.map((el) => el.type).flat(),
+                            type
+                        ),
+                        loc,
+                    });
+                else if (type === 'ptr-to') {
+                    if (arr.length < 1)
+                        compilerError(
+                            [loc],
+                            'Cannot apply ptr-to: Typecheck is empty'
+                        );
+                    else return arr[arr.length - 1].type.pointerCount++;
+                } else
+                    compilerError(
+                        [loc],
+                        'Expect a structname, type or ptr-to, but found %s %s %s',
+                        type
+                    );
+            }
 
             ip++;
             while (ip < tokens.length) {
@@ -515,18 +585,6 @@ export async function parseProgram(
                         'Expected Word, but found ' +
                             humanTokenType(typeorsplit.type)
                     );
-                if (
-                    typeorsplit.value !== '--' &&
-                    typeorsplit.value !== 'in' &&
-                    typeNames[typeorsplit.value as keyof typeof typeNames] ===
-                        undefined &&
-                    structs[typeorsplit.value] === undefined
-                )
-                    compilerError(
-                        [typeorsplit.loc],
-                        'Expected a Type, -- or in, found ' + typeorsplit.value
-                    );
-
                 if (typeorsplit.value === 'in') break;
                 else if (typeorsplit.value === '--' && !isAtIns)
                     compilerError(
@@ -534,18 +592,8 @@ export async function parseProgram(
                         'Found -- more than once in the function contract'
                     );
                 else if (typeorsplit.value === '--') isAtIns = false;
-                else if (
-                    typeNames[typeorsplit.value as keyof typeof typeNames] !==
-                    undefined
-                )
-                    (isAtIns ? ins : outs).push(
-                        typeNames[typeorsplit.value as keyof typeof typeNames]
-                    );
-                else if (structs[typeorsplit.value] !== undefined) {
-                    (isAtIns ? ins : outs).push(
-                        ...structToTypes(structs[typeorsplit.value])
-                    );
-                } else assert(false, 'Unreachable');
+                else if (!inlineNextFunction)
+                    pushType(typeorsplit.value, typeorsplit.loc);
 
                 ip++;
             }
@@ -554,6 +602,18 @@ export async function parseProgram(
                     [token.loc],
                     'Expected in but found ' + tokens[ip].value
                 );
+            if (!inlineNextFunction) {
+                for (const val of ins) {
+                    if (
+                        (val.type.types.length > 1 || val.type.typeName) &&
+                        val.type.pointerCount < 1
+                    )
+                        compilerError(
+                            [val.loc],
+                            'Structs are only allowed in ptr-to types!'
+                        );
+                }
+            }
 
             if (inlineNextFunction) {
                 const toks: Token[] = [];
@@ -610,17 +670,38 @@ export async function parseProgram(
                 });
 
             if (name.value === 'main' && !inlineNextFunction) {
-                if (ins.length > 0)
+                if (ins.length > 2)
                     compilerError(
                         [token.loc],
-                        "The main function can't take any arguments"
+                        'The main function can take 2 arguments max'
+                    );
+                if (ins.length >= 1 && !exactMatch(ins[0].type, Type.Int))
+                    compilerError(
+                        [token.loc],
+                        'The first parameter has to be an int'
+                    );
+                if (
+                    ins.length === 2 &&
+                    !exactMatch(
+                        ins[1].type,
+                        createEnhancedType(Type.Ptr, undefined, 1)
+                    )
+                )
+                    compilerError(
+                        [token.loc],
+                        'The second parameter has to be an ptr ptr-to'
                     );
                 if (outs.length > 1)
                     compilerError(
                         [token.loc],
                         "The main function can't return more than 1 thing"
                     );
-                if (outs.length === 1 && outs[0] !== Type.Int)
+                if (outs.length > 1)
+                    compilerError(
+                        [token.loc],
+                        'The main method has to return an int or nothing'
+                    );
+                if (outs.length === 1 && !exactMatch(outs[0].type, Type.Int))
                     compilerError(
                         [token.loc],
                         'The main method has to return an int or nothing'
@@ -642,7 +723,8 @@ export async function parseProgram(
                     outs,
                     used:
                         name.value === 'main' ||
-                        nextParams.includes('__run_function__'),
+                        nextParams.includes('__run_function__') ||
+                        nextParams.includes('__export__'),
                     prep,
                     skip: program.ops[program.ops.length - 1],
                     name: name.value,
@@ -653,7 +735,11 @@ export async function parseProgram(
                     !program.functionsToRun.includes(program.ops.length)
                 )
                     program.functionsToRun.push(program.ops.length);
-                functions[name.value] = program.ops.length;
+                if (
+                    !nextParams.includes('__fn_anonymous__') &&
+                    !nextParams.includes('__fn_anon__')
+                )
+                    functions[name.value] = program.ops.length;
                 program.ops.push(prep);
             }
             nextParams = [];
@@ -1084,7 +1170,7 @@ export async function parseProgram(
                     '     ' +
                         name +
                         ': [' +
-                        type.map(humanType).join(', ') +
+                        type.map($humanType).join(', ') +
                         '],'
                 );
             comment(' }');
@@ -1147,7 +1233,7 @@ export async function parseProgram(
                 });
             nextParams = [];
         } else if (token.type === TokenType.Word && token.value === 'inline') {
-            inlineNextFunction = true;
+            if (!check) inlineNextFunction = true;
             if (tokens[ip + 1] === undefined)
                 compilerError([token.loc], 'expected fn, found nothing');
             if (
@@ -1336,6 +1422,50 @@ export async function parseProgram(
                 paramname?.type
             );
             nextParams.push(paramname.value.toString());
+        } else if (
+            token.type === TokenType.Word &&
+            token.value === 'namespace'
+        ) {
+            nestings++;
+            const name = tokens[++ip];
+            expectedTT(name?.loc || token.loc, TokenType.Word, name?.type);
+            const oldip = ip;
+
+            let $nestings = 0;
+            let nextFn = false;
+            while (ip < tokens.length) {
+                const tok = tokens[++ip];
+                if (!tok) break;
+                else if (
+                    tok.type === TokenType.Word &&
+                    isBlockKeyword(tok.value)
+                )
+                    $nestings++;
+                else if (tok.type === TokenType.Word && tok.value === 'end')
+                    $nestings--;
+                if (
+                    tok.type === TokenType.Word &&
+                    (tok.value === 'fn' || tok.value === 'const')
+                )
+                    nextFn = true;
+                else {
+                    if (nextFn && tok.type === TokenType.Word)
+                        tok.value = name.value + '::' + tok.value;
+                    nextFn = false;
+                }
+                if ($nestings < 0) break;
+            }
+            const end = tokens[ip];
+            doesntmatchTT(
+                end?.loc || tokens[ip - 1]?.loc || token.loc,
+                TokenType.Word,
+                end?.type,
+                'end',
+                end?.value
+            );
+            end.type = TokenType.None;
+
+            ip = oldip;
         } else {
             if (
                 IntrinsicNames[token.value as keyof typeof IntrinsicNames] ===
@@ -1427,7 +1557,7 @@ export async function parseProgram(
                     ...tokens.slice(ip + 1),
                 ];
                 ip = -1;
-                // comments got handled previously already
+                // comments and None got handled previously already
             } else if (token.type !== TokenType.Comment) {
                 console.log(token);
                 compilerError([token.loc], 'Unknown error');

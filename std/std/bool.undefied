@@ -3,11 +3,13 @@ include "std/io"
 include "std/target"
 
 .ifdef Boolean::toString undef Boolean::toString .end
+.ifdef Boolean::print undef Boolean::print .end
+.ifdef Boolean::load undef Boolean::load .end
+.ifdef Boolean::store undef Boolean::store .end
 .ifdef lnot undef lnot .end
 .ifdef lxor undef lxor .end
 .ifdef land undef land .end
 .ifdef lor undef lor .end
-.ifdef printb undef printb .end
 .ifdef @bool undef @bool .end
 .ifdef !bool undef !bool .end
 
@@ -23,31 +25,19 @@ inline fn lnot bool -- bool in
             "push rax"
         end
     .end
-    .ifndef __defined .error "Could not find assembly for the target" .end
+    .ifndef __defined
+        const __defined 1 end
+        # custom undefied implementation
+        if false else true end
+    .end
+    undef __defined
     cast(bool)
 end
 
 
-inline fn lxor bool bool -- bool in
-    cast(bool) swap cast(bool)
-    .if __TARGET_LINUX_SUPPORT__
-        .ifdef __defined undef __defined .end
-        const __defined 1 end
-
-        .param __supports_linux__
-        assembly
-            "pop rax"
-            "pop rbx"
-            "xor rbx, rax"
-            "push rax"
-        end
-    .end
-    .ifndef __defined .error "Could not find assembly for the target" .end
-    fake(drop) cast(bool)
-end
+inline fn lxor bool bool -- bool in != end
 
 inline fn lor bool bool -- bool in
-    cast(bool) swap cast(bool)
     .if __TARGET_LINUX_SUPPORT__
         .ifdef __defined undef __defined .end
         const __defined 1 end
@@ -58,13 +48,18 @@ inline fn lor bool bool -- bool in
             "or rbx, rax"
             "push rax"
         end
+        fake(drop)
     .end
-    .ifndef __defined .error "Could not find assembly for the target" .end
-    fake(drop) cast(bool)
+    .ifndef __defined
+        const __defined 1 end
+        # custom undefied implementation
+        if true drop end
+    .end
+    undef __defined
+    cast(bool)
 end
 
 inline fn land bool bool -- bool in
-    cast(bool) swap cast(bool)
     .if __TARGET_LINUX_SUPPORT__
         .ifdef __defined undef __defined .end
         const __defined 1 end
@@ -75,13 +70,23 @@ inline fn land bool bool -- bool in
             "and rbx, rax"
             "push rax"
         end
+        fake(drop)
     .end
-    .ifndef __defined .error "Could not find assembly for the target" .end
+    .ifndef __defined
+        const __defined 1 end
+        # custom undefied impl
+        if else drop false end
+    .end
+    cast(bool)
     undef __defined
-    fake(drop) cast(bool)
 end
 
-inline fn Boolean::toString bool -- ptr int in if "true" else "false" end end
-inline fn printb bool in Boolean::toString puts end
 inline fn @bool ptr -- bool in @64 cast(bool) end
 inline fn !bool bool ptr in cast(int) swap !64 end
+
+namespace Boolean
+    inline fn toString bool -- ptr int in if "true" else "false" end end
+    inline fn print bool in Boolean::toString puts end
+    inline fn load ptr -- bool in @64 cast(bool) end
+    inline fn store bool ptr in cast(int) swap !64 end
+end

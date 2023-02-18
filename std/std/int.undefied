@@ -33,31 +33,32 @@ dup 1 < if drop "0" return end
 31 swap
 while
     dup 15 and gethexcc
-    swap rot over ph_tmp_store cast(int) + cast(ptr) !
+    swap rot over ph_tmp_store cast(int) + cast(ptr) !8
     1 -
     swap
     4 shr
     dup 1 <
     if drop 0 end
-end  
-drop dup 32 swap - ph_tmp_store cast(int) rot rot + cast(ptr)
+end
+drop dup 1 + ph_tmp_store cast(int) + cast(ptr) swap 31 swap - swap
 end
 
 memory pd_tmp_store 32 end
+
+# .param __provided_externally__
+# fn console.info any any in end
 
 fn decToStr int -- ptr int in
 dup 1 < if drop "0" return end
 31 swap
 while
     10 /% '0' +
-    rot rot 
-    dup swap rot pd_tmp_store cast(int) + cast(ptr)  !
-    1 -
-    swap
-    dup 1 <
-    if drop 0 end
+    rot rot swap over pd_tmp_store cast(int) + cast(ptr) !8
+    1 - swap
+    dup
+    0 <= if drop 0 end
 end
-drop dup 32 swap - pd_tmp_store cast(int) rot rot + cast(ptr)
+drop dup 1 + pd_tmp_store cast(int) + cast(ptr) swap 31 swap - swap
 end
 
 memory pb_tmp_store 64 end
@@ -67,12 +68,12 @@ dup 1 < if drop "0" return end
 31 swap
 while
     dup 1 and '0' +
-    swap rot over pb_tmp_store cast(int) + cast(ptr) !
+    swap rot over pb_tmp_store cast(int) + cast(ptr) !8
     1 -
     swap
     1 shr
     dup 1 <
     if drop 0 end
-end  
-drop dup 32 swap - pb_tmp_store cast(int) rot rot + cast(ptr)
+end
+drop dup 1 + pb_tmp_store cast(int) + cast(ptr) swap 31 swap - swap
 end

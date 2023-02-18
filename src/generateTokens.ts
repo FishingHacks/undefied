@@ -103,7 +103,8 @@ export async function generateTokens(file: string, dev: boolean) {
                 character === 'c' &&
                 value === '' &&
                 lastWasLineBreak < 1 &&
-                tokens[tokens.length - 1].type === TokenType.String
+                tokens[tokens.length - 1].type === TokenType.String &&
+                line[c - 1] === '"'
             ) {
                 tokens[tokens.length - 1].type = TokenType.CString;
             } else if (

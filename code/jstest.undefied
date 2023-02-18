@@ -1,0 +1,93 @@
+include "std/io"
+include "std/str"
+include "std/bool"
+include "std/colors"
+include "std/target"
+include "binaryparser"
+include "hexparser"
+include "std/js/utils"
+include "std/js/syscalls"
+
+inline fn helloWorld in
+    "Hello, World!\n" puts
+end
+
+
+.param __export__
+fn maina in
+    "Your name?" readPrompt
+    "Hello, " puts style_bold puts bold_RESET "!\n" puts
+    "Your Age?" readPrompt
+    "You already went through " puts style_bold puts bold_RESET " Years of life. Wow!\n" puts
+    
+    "Supports: " puts 2 putu " (" puts __TARGET_SUPPORT__ puts ")\n" puts
+    helloWorld
+  
+    11 10 + print
+    
+    "Exit\n" puts
+    
+    2
+    dup 1 = if  "one"
+    else dup 2 = if* "two"
+    else dup 3 = if* "three"
+    else             "unknown"
+    end puts drop "\n" puts
+  
+    "10" parseBinVal print
+    "1001" parseBinVal print
+    "11" parseBinVal print
+    
+    "f" parseHexVal print
+    "ff" parseHexVal print
+    "ffff" parseHexVal print
+  
+    "aaa" "aaa" Str::eq Boolean::print
+    "\n" puts
+    "12345678" 2 Str::substr puts
+end
+
+inline fn randomColor in
+    16 random
+         dup 0 =  if  drop black
+    else dup 1 =  if* drop blue
+    else dup 2 =  if* drop cyan
+    else dup 3 =  if* drop gray
+    else dup 4 =  if* drop green
+    else dup 5 =  if* drop magenta
+    else dup 6 =  if* drop red
+    else dup 7 =  if* drop white
+    else dup 8 =  if* drop yellow
+    else dup 9 =  if* drop blackBright
+    else dup 10 = if* drop blueBright
+    else dup 11 = if* drop cyanBright
+    else dup 12 = if* drop greenBright
+    else dup 13 = if* drop magentaBright
+    else dup 14 = if* drop redBright
+    else dup 15 = if* drop whiteBright
+    else              drop yellowBright end
+end
+
+.param __export__
+fn mainb in
+    1 while
+        randomColor
+        "█" puts
+        1 +
+        # awaitNextRender
+    end
+    drop
+end
+
+.param __export__
+fn mainc in
+    10
+    .param __supports_javascript__
+    assembly
+        "alert(stack.pop());"
+    end
+    fake(drop)
+end
+
+.param __export__
+fn main in 0 SC_exit end

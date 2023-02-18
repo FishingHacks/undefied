@@ -1,12 +1,13 @@
 include "values"
 include "std/ptr"
+include "std/target"
 
 .ifdef Str undef Str .end
 .ifdef CStr undef CStr .end
-.ifdef cstrToStr undef cstrToStr .end
-.ifdef cstrlen undef cstrlen .end
-.ifdef cstreq undef cstreq .end
-.ifdef streq undef streq .end
+.ifdef CStr::toStr undef CStr::toStr .end
+.ifdef CStr::len undef CStr::len .end
+.ifdef Cstr::eq undef Cstr::eq .end
+.ifdef Str::eq undef Str::eq .end
 
 .ifdef tmp_strlen_streq .error "tmp_strlen_streq is already defined :c" .end
 
@@ -18,47 +19,87 @@ struct CStr in
   pointer ptr
 end
 
-fn cstrlen CStr -- int in
-  0 1
-  while
-    drop
-    swap dup @64 0 = if swap 0 else swap 1 + 1 end
+namespace CStr
+  inline fn null -- ptr in nullptr end
+
+  fn len ptr -- int in
+    dup nullptr = if drop 0 return end
+    0 1
+    while
+      drop
+      swap dup @8 0 = if swap 0 else 1 ptr+ swap 1 + 1 end
+    end
+    drop swap drop
   end
-  drop swap drop
+
+  inline fn toStr ptr -- ptr int in dup CStr::len swap end
+
+  fn eq ptr ptr -- bool in
+
+    over over CStr::len swap CStr::len != if drop drop false return end
+    dup CStr::len
+
+    while
+      rot
+
+      over over @64 swap @64 != if drop drop drop false return end
+      1 ptr+ swap 1 ptr+
+
+      rot rot
+      1 -
+    end
+    drop drop drop true
+  end
 end
 
-inline fn cstrToStr CStr -- Str in dup cstrlen swap end
+namespace Str
 
-fn cstreq CStr CStr -- bool in
-  over over cstrlen swap cstrlen != if drop drop false return end
-  dup cstrlen
+  .ifeq __TARGET__ __TARGET_JAVASCRIPT__
+    .ifdef Str::toJSString undef Str::toJSString .end
+    .ifdef Str::fromtoJSString undef Str::fromtoJSString .end
 
-  while
-    rot
+    .param __provided_externally__
+    fn toJSString ptr int -- ptr in end
+    .param __provided_externally__
+    fn fromJSString ptr -- ptr int in end
+  .end
+
+  inline fn null -- ptr int in "" end
+
+  memory tmp_strlen_streq sizeof(u64) end
+
+  fn eq ptr int ptr int -- bool in
+    swap tmp_strlen_streq !64 rot rot tmp_strlen_streq @64 != if drop drop false return end
+    tmp_strlen_streq @64
+
+    while
+      rot
+
+      over over @64 swap @64 != if drop drop drop false return end
+      1 ptr+ swap 1 ptr+
+
+      rot rot
+      1 -
+    end
+    drop drop drop true
+  end
+
+  fn substr int ptr int -- ptr int in
+    rot rot over over
+    >= if drop drop drop Str::null return end
     
-    over over @ swap @ != if drop drop drop false return end
-    1 ptr+ swap 1 ptr+
-
-    rot rot
-    1 -
+    over - rot ptr+
   end
-  drop drop drop true
+
 end
 
-memory tmp_strlen_streq sizeof(u64) end
+.ifeq __TARGET__ __TARGET_JAVASCRIPT__
+  .ifdef CStr::toJSString undef CStr::toJSString .end
+  .ifdef CStr::fromJSString undef CStr::fromJSString .end
 
-fn streq Str Str -- bool in
-  swap tmp_strlen_streq !64 rot rot tmp_strlen_streq @64 != if drop drop false return end
-  tmp_strlen_streq @64
-
-  while
-    rot
-
-    over over @ swap @ != if drop drop drop false return end
-    1 ptr+ swap 1 ptr+
-
-    rot rot
-    1 -
+  inline fn CStr::toJSString ptr -- ptr in
+    CStr::toStr Str::toJSString
   end
-  drop drop drop true
-end
+  .param __provided_externally__
+  fn CStr::fromJSString ptr -- ptr in end
+.end

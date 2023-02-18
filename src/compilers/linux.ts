@@ -2,12 +2,14 @@ import assert from 'assert';
 import { open } from 'fs/promises';
 import { join } from 'path';
 import { format } from 'util';
-import { compilerError, compilerWarn } from './errors';
-import { OpType, Keyword, Type, Intrinsic, Program } from './types';
-import { cmd_echoed, hasParameter, humanLocation, humanType } from './utils';
+import { compilerError, compilerWarn, error } from '../errors';
+import { OpType, Keyword, Type, Intrinsic, Program } from '../types';
 import * as crypto from 'crypto';
 import chalk from 'chalk';
-import { timer } from './timer';
+import { timer } from '../timer';
+import { nasmLabelIsValid } from '../utils/assembly';
+import { cmd_echoed, hasParameter, humanLocation } from '../utils/general';
+import { humanType } from '../utils/types';
 
 function generateStringName(str: string): string {
     return crypto.randomUUID().replaceAll('-', '');
@@ -62,6 +64,18 @@ export async function compile({
             'write failed'
         );
         position += to_write.length;
+    }
+    async function writeLabel(
+        panicIfInvalid: boolean,
+        label: string,
+        ...args: any[]
+    ) {
+        const labelName = format(label, ...args);
+        if (!nasmLabelIsValid(labelName))
+            if (panicIfInvalid) error('Label name %s is invalid!', labelName);
+            else return;
+        await write(labelName);
+        await write('\n');
     }
 
     if (!program.mainop) {
@@ -126,11 +140,11 @@ export async function compile({
             await write('\n');
             await write(';;   -> Ins: ');
             if (ins.length < 1) await write('none');
-            else await write(ins.map(humanType).join(', '));
+            else await write(ins.map((el) => humanType(el.type)).join(', '));
             await write('\n');
             await write(';;   -> Outs: ');
             if (outs.length < 1) await write('none');
-            else await write(outs.map(humanType).join(', '));
+            else await write(outs.map((el) => humanType(el.type)).join(', '));
             await write('\n\n');
         }
         functionMetadataGenEnd();
@@ -211,7 +225,8 @@ export async function compile({
     while (ip < program.ops.length) {
         const op = program.ops[++ip];
         if (!op) break;
-        if (req_addrs.includes(Number(ip))) await write('addr_%d:\n', ip);
+        if (req_addrs.includes(Number(ip)))
+            await writeLabel(true, 'addr_%d:', ip);
 
         if (op.type === OpType.PushString) {
             await write(
@@ -282,7 +297,11 @@ export async function compile({
                 await write('    jmp addr_%d\n', op.operation);
             }
         } else if (op.type === OpType.PrepFn) {
-            await write(`${op.functionName}_${getId(op.functionName)}:\n`);
+            if (!hasParameter(op, ['__fn_anon__', '__fn_anonymous__']))
+                await writeLabel(
+                    false,
+                    `${op.functionName}_${getId(op.functionName)}:`
+                );
             await write('    ;; prep fn ' + op.functionName);
             await write('\n');
             await write('    mov [ret_stack_rsp], rsp\n');
@@ -344,7 +363,12 @@ export async function compile({
                 const str = chalk.red(
                     'PANIC: ' +
                         program.contracts[op.operation].name +
-                        ' returned even tho it was marked as __function_exits__!'
+                        ' returned even tho it was marked as __function_exits__! Return at ' +
+                        op.location[0] +
+                        ':' +
+                        op.location[1] +
+                        ':' +
+                        op.location[2]
                 );
                 await write(
                     '   ;; ReturnPanic (ret on __function_exits__ functions)\n'
@@ -745,7 +769,7 @@ export async function compile({
     }
 
     if (req_addrs.includes(program.ops.length))
-        await write('addr_%d:\n', program.ops.length);
+        await writeLabel(true, 'addr_%d:', program.ops.length);
     if (!dontRunFunctions) {
         await write('    ;; call all ___run_function__ functions\n');
         for (const f of program.functionsToRun) {
@@ -795,13 +819,13 @@ export async function compile({
     await write('    ret_stack: resb 4096\n');
     await write('    ret_stack_end:\n');
     await write('    args_ptr: resq 1\n');
-    for (const [name, sz] of Object.entries(program.mems)) {
+    for (const [name, { size }] of Object.entries(program.mems)) {
         if (usedMems.includes(name))
-            await write('    mem_' + name + ': resb ' + sz + '\n');
+            await write('    mem_' + name + ': resb ' + size + '\n');
     }
 
     for (const f of external) {
-        await write('%include "%s"\n', JSON.stringify(join('', f)));
+        await write('%%include "%s"\n', JSON.stringify(join('', f)));
     }
     asmEnd();
     await out.close();
@@ -824,3 +848,11 @@ export async function compile({
 }
 
 export const removeFiles: string[] = ['.o', '.asm'];
+export async function runProgram(file: string, args: string[]) {
+    cmd_echoed(
+        `"${!file.startsWith('/') ? join(process.cwd(), file) : file}" ${args
+            .map((el) => '"' + el.replaceAll('"', '\\"') + '"')
+            .join(' ')}`,
+        'Program Output'
+    );
+}
