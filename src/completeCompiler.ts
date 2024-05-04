@@ -42,7 +42,9 @@ export default async function compileFile(
     typecheckingOnly: boolean,
     args?: string[]
 ) {
-    const end = timer.start('compileFile() | ' + file + ' for target ' + target);
+    const end = timer.start(
+        'compileFile() | ' + file + ' for target ' + target
+    );
 
     const compiler = getCompiler(target);
     if (!compiler)
@@ -123,7 +125,7 @@ export default async function compileFile(
         error('Error: Only .undefied files are allowed');
     if (!(await exists(file)) || !(await isFile(file)))
         error("Error: Cannot find file '" + file + "'");
-    tokens.push(...(await generateTokens(file, dev)));
+    tokens.push(...(await generateTokens(file)));
     const parsed = await parseProgram(
         tokens,
         Number(optimizations),
@@ -132,7 +134,7 @@ export default async function compileFile(
         typecheckingOnly
     );
     const program = crossReferenceProgram(parsed);
-    if (!unsafe) typecheckProgram(program, dev);
+    if (!unsafe) typecheckProgram(program);
     if (!typecheckingOnly) {
         if (optimizations === '1') dce(program, dev);
         else for (const c of Object.values(program.contracts)) c.used = true;
@@ -143,6 +145,8 @@ export default async function compileFile(
             optimizations,
             dontRunFunctions,
             external,
+            dev,
+            unsafe,
         });
         if (!keepFiles) cleanFiles(file, compiler.removeFiles, dev);
         end();

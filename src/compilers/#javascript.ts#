@@ -5,6 +5,7 @@ import { createServer } from 'http';
 import path, { join } from 'path';
 import { format } from 'util';
 import { compilerError, error } from '../errors';
+
 import {
     CompilerParameters,
     Contract,
@@ -60,6 +61,8 @@ function skipFn(ip: number) {
         operation: ip,
     };
 }
+
+
 function none() {
     return {
         type: 7, // OpType.None
@@ -582,5 +585,5 @@ function makeHTML(js: string) {
         '<!DOCTYPE html><html lang="en"><head><title>Undefied Javascript Runtime</title></head><body><script>' +
         js +
         '</script></body></html>'
-    );
+    );1
 }

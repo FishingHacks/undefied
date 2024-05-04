@@ -1,7 +1,7 @@
-import { spawnSync } from "child_process";
-import { info, error } from "../errors";
-import { timer } from "../timer";
-import { Loc, Operation } from "../types";
+import { spawnSync } from 'child_process';
+import { info, error, compilerError } from '../errors';
+import { timer } from '../timer';
+import { Loc, Operation } from '../types';
 
 export function stringMultiply(char: string, i: number) {
     let str = '';
@@ -22,8 +22,26 @@ export function hasParameter(
     parameter = arrayify(parameter);
     if (!op) return false;
     else if (!op.parameters) return false;
-    for (const p of parameter) if (op.parameters.includes(p)) return true;
+    for (const p of parameter) if (op.parameters[p] !== undefined) return true;
     return false;
+}
+export function parameterRequired(op: Operation, ...parameter: string[]) {
+    parameter = arrayify(parameter);
+    for (const p of parameter) {
+        if (!hasParameter(op, p)) compilerError([op.location], 'Expected parameter %s', p);
+    }
+}
+export function parameterDisallowed(op: Operation, ...parameter: string[]) {
+    parameter = arrayify(parameter);
+    for (const p of parameter) {
+        if (hasParameter(op, p)) compilerError([op.location], 'Parameter %s is not allowed here', p);
+    }
+}
+export function getParameter(
+    op: Operation | undefined,
+    name: string
+): string | undefined {
+    return op?.parameters?.[name];
 }
 export function cmd_echoed(cmd: string, name?: string) {
     const end = timer.start('[CMD]: ' + name || cmd);

@@ -134,7 +134,7 @@ export enum OpType {
 export type Operation = {
     location: Loc;
     token: Token;
-    parameters?: string[];
+    parameters?: Record<string, string>;
     ip: number;
 } & (
     | {
@@ -188,23 +188,30 @@ export type Operation = {
       }
 );
 
+export type ValueToken<T extends TokenType, V extends any> = {
+    value: V;
+    type: T;
+};
+
+export type IntegerToken = ValueToken<TokenType.Integer, number>;
+export type StringToken = ValueToken<
+    TokenType.String | TokenType.CString,
+    string
+>;
+export type WordToken = ValueToken<TokenType.Word, string>;
+export type CommentToken = ValueToken<TokenType.Comment, string>;
+export type ControlToken = {
+    args?: Record<string, unknown>;
+} & ValueToken<TokenType.Control, string>;
+export type NullToken = ValueToken<TokenType.None, string>;
+
 export type Token = { loc: Loc } & (
-    | {
-          value: number;
-          type: TokenType.Integer;
-      }
-    | {
-          value: string;
-          type:
-              | TokenType.CString
-              | TokenType.String
-              | TokenType.Word
-              | TokenType.Comment;
-      }
-    | {
-          type: TokenType.None;
-          value: string;
-      }
+    | IntegerToken
+    | StringToken
+    | WordToken
+    | CommentToken
+    | ControlToken
+    | NullToken
 );
 export enum TokenType {
     Word,
@@ -214,6 +221,7 @@ export enum TokenType {
     CharCode,
     None,
     Comment,
+    Control,
 }
 
 export interface CompilerParameters {
@@ -222,6 +230,8 @@ export interface CompilerParameters {
     filename?: string;
     external?: string[];
     dontRunFunctions?: boolean;
+    dev?: boolean;
+    unsafe?: boolean;
 }
 export type CompileFunction = (parameters: CompilerParameters) => void;
 

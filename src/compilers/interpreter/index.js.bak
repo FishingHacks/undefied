@@ -1,0 +1,556 @@
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+var Intrinsic;
+(function (Intrinsic) {
+    Intrinsic[Intrinsic["Print"] = 0] = "Print";
+    Intrinsic[Intrinsic["Plus"] = 1] = "Plus";
+    Intrinsic[Intrinsic["Minus"] = 2] = "Minus";
+    Intrinsic[Intrinsic["Multiply"] = 3] = "Multiply";
+    Intrinsic[Intrinsic["DivMod"] = 4] = "DivMod";
+    Intrinsic[Intrinsic["LessThan"] = 5] = "LessThan";
+    Intrinsic[Intrinsic["LessThanEqual"] = 6] = "LessThanEqual";
+    Intrinsic[Intrinsic["GreaterThan"] = 7] = "GreaterThan";
+    Intrinsic[Intrinsic["GreaterThanEqual"] = 8] = "GreaterThanEqual";
+    Intrinsic[Intrinsic["Equal"] = 9] = "Equal";
+    Intrinsic[Intrinsic["NotEqual"] = 10] = "NotEqual";
+    Intrinsic[Intrinsic["Drop"] = 11] = "Drop";
+    Intrinsic[Intrinsic["Dup"] = 12] = "Dup";
+    Intrinsic[Intrinsic["Over"] = 13] = "Over";
+    Intrinsic[Intrinsic["Swap"] = 14] = "Swap";
+    Intrinsic[Intrinsic["Rot"] = 15] = "Rot";
+    Intrinsic[Intrinsic["Load"] = 16] = "Load";
+    Intrinsic[Intrinsic["Store"] = 17] = "Store";
+    Intrinsic[Intrinsic["Shl"] = 18] = "Shl";
+    Intrinsic[Intrinsic["Shr"] = 19] = "Shr";
+    Intrinsic[Intrinsic["Or"] = 20] = "Or";
+    Intrinsic[Intrinsic["And"] = 21] = "And";
+    Intrinsic[Intrinsic["Not"] = 22] = "Not";
+    Intrinsic[Intrinsic["Xor"] = 23] = "Xor";
+})(Intrinsic || (Intrinsic = {}));
+var Keyword;
+(function (Keyword) {
+    Keyword[Keyword["If"] = 0] = "If";
+    Keyword[Keyword["End"] = 1] = "End";
+    Keyword[Keyword["Else"] = 2] = "Else";
+    Keyword[Keyword["While"] = 3] = "While";
+    Keyword[Keyword["IfStar"] = 4] = "IfStar";
+})(Keyword || (Keyword = {}));
+var OpType;
+(function (OpType) {
+    OpType[OpType["Intrinsic"] = 0] = "Intrinsic";
+    OpType[OpType["Keyword"] = 1] = "Keyword";
+    OpType[OpType["PushInt"] = 2] = "PushInt";
+    OpType[OpType["SkipFn"] = 3] = "SkipFn";
+    OpType[OpType["Ret"] = 4] = "Ret";
+    OpType[OpType["Call"] = 5] = "Call";
+    OpType[OpType["BindLet"] = 6] = "BindLet";
+    OpType[OpType["None"] = 7] = "None";
+    OpType[OpType["PushStr"] = 8] = "PushStr";
+    OpType[OpType["Javascript"] = 9] = "Javascript";
+})(OpType || (OpType = {}));
+function printOperation(op) {
+    if (op.type === OpType.Call)
+        return console.info('Call {name: %s, ip: %d, external: %s}', op.functionName, op.operation, op.externalCall);
+    else if (op.type === OpType.Intrinsic)
+        return console.info('Intrinsic {%s}', Intrinsic[op.operation]);
+    else if (op.type === OpType.Keyword && op.reference !== undefined)
+        return console.info('Keyword {%s}', Keyword[op.operation]);
+    else if (op.type === OpType.Keyword)
+        return console.info('Keyword {%s, %d}', Keyword[op.operation], op.reference);
+    else if (op.type === OpType.None)
+        return;
+    else if (op.type === OpType.PushInt)
+        return console.info('PushInt {%d}', op.operation);
+    else if (op.type === OpType.PushStr)
+        return console.info('PushStr {%s}', String.fromCharCode.apply(String, globalThis.__undefieddata__.memory.slice(op.ptr, op.ptr + op.length)));
+    else if (op.type === OpType.Ret)
+        return console.info('Return');
+    else if (op.type === OpType.SkipFn)
+        return console.info('SkipFn {%d}', op.operation);
+}
+// Comment when compiling
+// const operations: Operation[] = [
+//     {
+//         type: OpType.PushInt,
+//         operation: 35,
+//     },
+//     {
+//         type: OpType.PushInt,
+//         operation: 34,
+//     },
+//     {
+//         type: OpType.Intrinsic,
+//         operation: Intrinsic.Plus,
+//     },
+//     {
+//         type: OpType.Intrinsic,
+//         operation: Intrinsic.Print,
+//     },
+//     {
+//         type: OpType.None,
+//     },
+// ];
+// Uncomment when compiling
+var operations = globalThis.__undefieddata__.operations;
+var memory = globalThis.__undefieddata__
+    .memory;
+var memories = globalThis.__undefieddata__
+    .memories;
+var run = globalThis.__undefieddata__.run;
+var stack = [];
+var returnStack = [];
+var undefiedProgramExports = globalThis.exports;
+for (var _i = 0, _a = globalThis.__undefieddata__.exports; _i < _a.length; _i++) {
+    var e = _a[_i];
+    undefiedProgramExports[e.name] = generateFunction(e.ip, operations);
+}
+function resolveFunctionName(name) {
+    var split = name.split('.');
+    var obj = globalThis;
+    for (var i = 0; i < split.length; i++)
+        obj = obj === null || obj === void 0 ? void 0 : obj[split[i]];
+    if (obj === undefined || typeof obj !== 'function')
+        throw new Error('No function with the name ' + name + ' was found!');
+    return obj;
+}
+var stopRun = false;
+globalThis.killCurrentFunction = function killCurrentFunction() {
+    stopRun = true;
+};
+var ExitError = /** @class */ (function (_super) {
+    __extends(ExitError, _super);
+    function ExitError(exitcode, message) {
+        var _this = _super.call(this, message) || this;
+        _this.exitCode = exitcode;
+        return _this;
+    }
+    return ExitError;
+}(Error));
+ExitError = globalThis.ExitError;
+var firstRun = true;
+function interpret(operations, ip, stack) {
+    var printExit = firstRun;
+    firstRun = false;
+    var i = 0;
+    return new Promise(function (res, rej) {
+        function nextInstruction() {
+            var _a;
+            return __awaiter(this, void 0, void 0, function () {
+                var changed, op, _b, top_1, bottom, _c, top_2, bottom, _d, top_3, bottom, _e, top_4, bottom, val, pointer, value, _f, top_5, bottom, _g, top_6, bottom, _h, a, b, c, fn, ins, i_1, returnValue, outs, val, e_1, e_2;
+                return __generator(this, function (_j) {
+                    switch (_j.label) {
+                        case 0:
+                            i++;
+                            _j.label = 1;
+                        case 1:
+                            _j.trys.push([1, 19, , 21]);
+                            changed = false;
+                            op = operations[ip];
+                            if (!op)
+                                throw new ExitError(0, 'No Intructions');
+                            if (globalThis.devmode && op.type !== OpType.None)
+                                printOperation(op);
+                            if (!(op.type === OpType.PushInt)) return [3 /*break*/, 2];
+                            stack.push(op.operation);
+                            return [3 /*break*/, 18];
+                        case 2:
+                            if (!(op.type === OpType.Intrinsic)) return [3 /*break*/, 3];
+                            switch (op.operation) {
+                                case Intrinsic.Print:
+                                    console.log(((_a = stack.pop()) === null || _a === void 0 ? void 0 : _a.toString()) + '\n');
+                                    changed = true;
+                                    break;
+                                case Intrinsic.Plus:
+                                    stack.push((stack.pop() || 0) + (stack.pop() || 0));
+                                    break;
+                                case Intrinsic.DivMod:
+                                    {
+                                        _b = [
+                                            stack.pop() || 0,
+                                            stack.pop() || 0,
+                                        ], top_1 = _b[0], bottom = _b[1];
+                                        stack.push(Math.floor(bottom / top_1), bottom % top_1);
+                                    }
+                                    break;
+                                case Intrinsic.Minus:
+                                    {
+                                        _c = [
+                                            stack.pop() || 0,
+                                            stack.pop() || 0,
+                                        ], top_2 = _c[0], bottom = _c[1];
+                                        stack.push(bottom - top_2);
+                                    }
+                                    break;
+                                case Intrinsic.Multiply:
+                                    stack.push((stack.pop() || 0) * (stack.pop() || 0));
+                                    break;
+                                case Intrinsic.Not:
+                                    stack.push(~(stack.pop() || 0));
+                                    break;
+                                case Intrinsic.Or:
+                                    stack.push((stack.pop() || 0) | (stack.pop() || 0));
+                                    break;
+                                case Intrinsic.Xor:
+                                    stack.push((stack.pop() || 0) ^ (stack.pop() || 0));
+                                    break;
+                                case Intrinsic.Shl:
+                                    {
+                                        _d = [
+                                            stack.pop() || 0,
+                                            stack.pop() || 0,
+                                        ], top_3 = _d[0], bottom = _d[1];
+                                        stack.push(bottom << top_3);
+                                    }
+                                    break;
+                                case Intrinsic.Shr:
+                                    {
+                                        _e = [
+                                            stack.pop() || 0,
+                                            stack.pop() || 0,
+                                        ], top_4 = _e[0], bottom = _e[1];
+                                        stack.push(bottom >> top_4);
+                                    }
+                                    break;
+                                case Intrinsic.Drop:
+                                    stack.pop();
+                                    break;
+                                case Intrinsic.Dup:
+                                    {
+                                        val = stack.pop() || 0;
+                                        stack.push(val, val);
+                                    }
+                                    break;
+                                case Intrinsic.Equal:
+                                    stack.push((stack.pop() || 0) === (stack.pop() || 0)
+                                        ? 1
+                                        : 0);
+                                    break;
+                                case Intrinsic.NotEqual:
+                                    stack.push((stack.pop() || 0) !== (stack.pop() || 0)
+                                        ? 1
+                                        : 0);
+                                    break;
+                                case Intrinsic.GreaterThan:
+                                    stack.push((stack.pop() || 0) < (stack.pop() || 0) ? 1 : 0);
+                                    break;
+                                case Intrinsic.GreaterThanEqual:
+                                    stack.push((stack.pop() || 0) <= (stack.pop() || 0) ? 1 : 0);
+                                    break;
+                                case Intrinsic.LessThan:
+                                    stack.push((stack.pop() || 0) > (stack.pop() || 0) ? 1 : 0);
+                                    break;
+                                case Intrinsic.LessThanEqual:
+                                    stack.push((stack.pop() || 0) >= (stack.pop() || 0) ? 1 : 0);
+                                    break;
+                                case Intrinsic.Load:
+                                    stack.push(memory[stack.pop() || 0]);
+                                    break;
+                                case Intrinsic.Store:
+                                    {
+                                        pointer = stack.pop() || 0;
+                                        value = stack.pop() || 0;
+                                        memory[pointer] = value;
+                                    }
+                                    break;
+                                case Intrinsic.Over:
+                                    {
+                                        _f = [
+                                            stack.pop() || 0,
+                                            stack.pop() || 0,
+                                        ], top_5 = _f[0], bottom = _f[1];
+                                        stack.push(bottom, top_5, bottom);
+                                    }
+                                    break;
+                                case Intrinsic.Swap:
+                                    {
+                                        _g = [
+                                            stack.pop() || 0,
+                                            stack.pop() || 0,
+                                        ], top_6 = _g[0], bottom = _g[1];
+                                        stack.push(top_6, bottom);
+                                    }
+                                    break;
+                                case Intrinsic.Rot:
+                                    {
+                                        _h = [
+                                            stack.pop() || 0,
+                                            stack.pop() || 0,
+                                            stack.pop() || 0,
+                                        ], a = _h[0], b = _h[1], c = _h[2];
+                                        stack.push(a, c, b);
+                                    }
+                                    break;
+                                default:
+                                    throw new Error('Unreachable Intrinsic ' + op.operation);
+                            }
+                            return [3 /*break*/, 18];
+                        case 3:
+                            if (!(op.type === OpType.SkipFn)) return [3 /*break*/, 4];
+                            ip = op.operation - 1;
+                            return [3 /*break*/, 18];
+                        case 4:
+                            if (!(op.type === OpType.Ret)) return [3 /*break*/, 5];
+                            if (op.panic !== undefined) {
+                                console.log('\x1B[31m%s\x1B[39m', op.panic);
+                                throw new Error(op.panic);
+                            }
+                            if (returnStack.length > 0)
+                                ip = returnStack.pop() || 0;
+                            else
+                                throw new ExitError(0, 'Return-based exit');
+                            return [3 /*break*/, 18];
+                        case 5:
+                            if (!(op.type === OpType.Call)) return [3 /*break*/, 9];
+                            if (!op.externalCall) return [3 /*break*/, 7];
+                            changed = true;
+                            fn = resolveFunctionName(op.functionName);
+                            ins = [];
+                            for (i_1 = 0; i_1 < op.ins; i_1++)
+                                ins.push(stack.pop() || 0);
+                            return [4 /*yield*/, fn.apply(void 0, ins)];
+                        case 6:
+                            returnValue = _j.sent();
+                            outs = returnValue === undefined
+                                ? []
+                                : returnValue instanceof Array
+                                    ? returnValue
+                                    : [returnValue];
+                            if (outs.length !== op.outs)
+                                throw new Error(op.functionName +
+                                    ' (external) does not return the desired amount of arguments (returned: ' +
+                                    outs.length +
+                                    ', desired: ' +
+                                    op.outs +
+                                    ')');
+                            stack.push.apply(stack, outs);
+                            return [3 /*break*/, 8];
+                        case 7:
+                            returnStack.push(ip);
+                            ip = op.operation - 1;
+                            _j.label = 8;
+                        case 8: return [3 /*break*/, 18];
+                        case 9:
+                            if (!(op.type === OpType.Keyword)) return [3 /*break*/, 10];
+                            switch (op.operation) {
+                                case Keyword.End:
+                                    if (op.reference)
+                                        ip = op.reference - 1;
+                                    break;
+                                case Keyword.Else:
+                                    ip = (op.reference || 1) - 1;
+                                    break;
+                                case Keyword.If:
+                                case Keyword.IfStar:
+                                    if ((stack.pop() || 0) < 1)
+                                        ip = (op.reference || 1) - 1;
+                                    break;
+                                case Keyword.While:
+                                    {
+                                        val = stack.pop() || 0;
+                                        stack.push(val);
+                                        if (val < 1)
+                                            ip = (op.reference || 1) - 1;
+                                    }
+                                    break;
+                                default:
+                                    throw new Error('Unreachable (keywords)');
+                            }
+                            return [3 /*break*/, 18];
+                        case 10:
+                            if (!(op.type === OpType.None)) return [3 /*break*/, 11];
+                            return [3 /*break*/, 18];
+                        case 11:
+                            if (!(op.type === OpType.PushStr)) return [3 /*break*/, 12];
+                            stack.push(op.length, op.ptr);
+                            return [3 /*break*/, 18];
+                        case 12:
+                            if (!(op.type === OpType.Javascript)) return [3 /*break*/, 17];
+                            _j.label = 13;
+                        case 13:
+                            _j.trys.push([13, 15, , 16]);
+                            return [4 /*yield*/, eval(op.value)(stack)];
+                        case 14:
+                            _j.sent();
+                            return [3 /*break*/, 16];
+                        case 15:
+                            e_1 = _j.sent();
+                            console.error('\x1B[31mThe following Error occured in a javascript code-snippet:\n');
+                            console.error(e_1);
+                            console.error('\x1B[39m\n');
+                            console.log('Code Snippet:\n', op.value
+                                .split('\n')
+                                .map(function (el) { return ' >  ' + el; })
+                                .join('\n'), '\n');
+                            throw e_1;
+                        case 16: return [3 /*break*/, 18];
+                        case 17: throw new Error('Unreachable (optype)');
+                        case 18: return [3 /*break*/, 21];
+                        case 19:
+                            e_2 = _j.sent();
+                            return [4 /*yield*/, globalThis.awaitNextRender()];
+                        case 20:
+                            _j.sent();
+                            if (printExit) {
+                                if (!e_2 || !(e_2 instanceof ExitError)) {
+                                    console.error('\n\x1B[31m[Program exited with -1: SYSERR]\n');
+                                    console.error(e_2, '\x1B[39m');
+                                    return [2 /*return*/, rej(e_2)];
+                                }
+                                else {
+                                    if (e_2.exitCode === 0) {
+                                        if (e_2.message.length > 0)
+                                            console.log('\n[Program exited with 0: %s]', e_2.message);
+                                        else
+                                            console.log('\n[Program exited with 0]');
+                                    }
+                                    else {
+                                        if (e_2.message.length > 0)
+                                            console.error('\n\x1B[31m[Program exited with %d: %s]\x1B[39m', e_2.exitCode, e_2.message);
+                                        else
+                                            console.error('\n\x1B[31m[Program exited with %d]\x1B[39m', e_2.exitCode);
+                                    }
+                                }
+                                return [2 /*return*/, res(stack)];
+                            }
+                            else {
+                                if (!e_2 || !(e_2 instanceof ExitError))
+                                    return [2 /*return*/, rej(e_2)];
+                                else
+                                    return [2 /*return*/, res(stack)];
+                            }
+                            return [2 /*return*/, rej(e_2)];
+                        case 21:
+                            ip++;
+                            if (!stopRun) return [3 /*break*/, 23];
+                            stopRun = false;
+                            return [4 /*yield*/, globalThis.awaitNextRender()];
+                        case 22:
+                            _j.sent();
+                            if (printExit) {
+                                console.error('\n\x1B[31m[Program exited with -1: SIGKILL]\n\x1B[39m');
+                            }
+                            return [2 /*return*/, rej(new ExitError(1, 'SIGKILL'))];
+                        case 23:
+                            if (i > 100)
+                                setTimeout(nextInstruction, 0);
+                            else
+                                return [2 /*return*/, nextInstruction()];
+                            _j.label = 24;
+                        case 24:
+                            i = 0;
+                            return [2 /*return*/];
+                    }
+                });
+            });
+        }
+        nextInstruction();
+    }).then(function (value) {
+        return !globalThis.process
+            ? globalThis.awaitNextRender().then(function () { return value; })
+            : value;
+    });
+}
+function generateFunction(ip, operations) {
+    return function () {
+        var stack = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            stack[_i] = arguments[_i];
+        }
+        return interpret(operations, ip, __spreadArray([], stack, true).reverse());
+    };
+}
+globalThis.__undefiedinterpreter__ = {
+    interpret: interpret,
+    generateFunction: generateFunction,
+    operations: operations
+};
+(function () {
+    return __awaiter(this, void 0, void 0, function () {
+        var _i, run_1, r;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _i = 0, run_1 = run;
+                    _a.label = 1;
+                case 1:
+                    if (!(_i < run_1.length)) return [3 /*break*/, 4];
+                    r = run_1[_i];
+                    return [4 /*yield*/, interpret(operations, r, [])];
+                case 2:
+                    _a.sent();
+                    _a.label = 3;
+                case 3:
+                    _i++;
+                    return [3 /*break*/, 1];
+                case 4:
+                    if (!(globalThis.__undefieddata__.mainop !== -1)) return [3 /*break*/, 6];
+                    // dont run when mainop is -1, as then nomain is set
+                    return [4 /*yield*/, interpret(operations, globalThis.__undefieddata__.mainop, stack)];
+                case 5:
+                    // dont run when mainop is -1, as then nomain is set
+                    _a.sent();
+                    _a.label = 6;
+                case 6: return [2 /*return*/];
+            }
+        });
+    });
+});

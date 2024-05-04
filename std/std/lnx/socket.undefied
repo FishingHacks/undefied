@@ -103,7 +103,7 @@ const sizeof(sockaddr_in.sin_family) 2 end
 const sizeof(sockaddr_in.sin_port) 2 end
 const sizeof(sockaddr_in.sin_addr) 4 end
 
-namespace Socket
+namespace Socket in
 
  const INADDR_LOCAL 16777343 end
 

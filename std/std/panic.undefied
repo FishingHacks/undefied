@@ -1,5 +1,6 @@
 include "std/io"
 include "std/target"
+include "std/colors"
 .if __TARGET_LINUX_SUPPORT__ include "std/lnx/syscalls" .end
 .ifeq __TARGET__ __TARGET_JAVASCRIPT__ include "std/js/syscalls" .end
 
@@ -8,6 +9,7 @@ include "std/target"
 .ifdef panic .warn "panic is already defined, the std lib now uses the new implementation. If the new implementation does not take ptr int as ins and exits, this will cause issues." .end
 .ifndef panic
     inline fn panic ptr int in
-    "PANIC: " eputs eputs "\n" eputs 1 SC_exit
+    red
+    "PANIC: " eputs eputs "\n" all_RESET eputs 1 SC_exit
     end
 .end

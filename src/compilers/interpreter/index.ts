@@ -200,18 +200,25 @@ class ExitError extends Error {
     new: (code: number, nessage: string) => { exitCode: number };
 };
 
+let firstRun = true;
+
 function interpret(
     operations: Operation[],
     ip: number,
     stack: number[]
 ): Promise<number[]> {
-    return new Promise((res) => {
-        async function nextInstruction() {
+    const printExit = firstRun;
+    firstRun = false;
+    let time = Date.now();
+    return new Promise((res, rej) => {
+        async function nextInstruction(): Promise<void> {
             try {
                 let changed = false;
                 const op = operations[ip];
 
                 if (!op) throw new ExitError(0, 'No Intructions');
+
+                if ((globalThis as any).devmode && op.type !== OpType.None) printOperation(op);
 
                 if (op.type === OpType.PushInt) stack.push(op.operation);
                 else if (op.type === OpType.Intrinsic) {
@@ -362,7 +369,10 @@ function interpret(
                     }
                 } else if (op.type === OpType.SkipFn) ip = op.operation - 1;
                 else if (op.type === OpType.Ret) {
-                    if (op.panic !== undefined) throw new Error(op.panic);
+                    if (op.panic !== undefined) {
+                        console.log('\x1B[31m%s\x1B[39m', op.panic);
+                        throw new Error(op.panic);
+                    }
                     if (returnStack.length > 0) ip = returnStack.pop() || 0;
                     else throw new ExitError(0, 'Return-based exit');
                 } else if (op.type === OpType.Call) {
@@ -442,50 +452,85 @@ function interpret(
                     }
                 } else throw new Error('Unreachable (optype)');
             } catch (e) {
-                if (!e || !(e instanceof ExitError)) {
-                    console.error(
-                        '\n\x1B[31m[Program exited with -1: SYSERR]\n'
-                    );
-                    console.error(e, '\x1B[39m');
-                } else {
-                    if (e.exitCode === 0) {
-                        if (e.message.length > 0)
-                            console.log(
-                                '\n[Program exited with 0: %s]',
-                                e.message
-                            );
-                        else console.log('\n[Program exited with 0]');
+                await (globalThis as any).awaitNextRender();
+                if (printExit) {
+                    if (!e || !(e instanceof ExitError)) {
+                        console.error(
+                            '\n\x1B[31m[Program exited with -1: SYSERR]\n'
+                        );
+                        console.error(e, '\x1B[39m');
+                        return rej(e);
                     } else {
-                        if (e.message.length > 0)
-                            console.error(
-                                '\n\x1B[31m[Program exited with %d: %s]\x1B[39m',
-                                e.exitCode,
-                                e.message
-                            );
-                        else
-                            console.error(
-                                '\n\x1B[31m[Program exited with %d]\x1B[39m',
-                                e.exitCode
-                            );
+                        if (e.exitCode === 0) {
+                            if (e.message.length > 0)
+                                console.log(
+                                    '\n[Program exited with 0: %s]',
+                                    e.message
+                                );
+                            else console.log('\n[Program exited with 0]');
+                        } else {
+                            if (e.message.length > 0)
+                                console.error(
+                                    '\n\x1B[31m[Program exited with %d: %s]\x1B[39m',
+                                    e.exitCode,
+                                    e.message
+                                );
+                            else
+                                console.error(
+                                    '\n\x1B[31m[Program exited with %d]\x1B[39m',
+                                    e.exitCode
+                                );
+                        }
                     }
+                    return res(stack);
+                } else {
+                    if (!e || !(e instanceof ExitError)) return rej(e);
+                    else return res(stack);
                 }
-                return res(stack);
+                return rej(e);
             }
             ip++;
             if (stopRun) {
                 stopRun = false;
-                throw new ExitError(1, 'SIGKILL');
-            } else nextInstruction();
+                await (globalThis as any).awaitNextRender();
+                if (printExit) {
+                    console.error(
+                        '\n\x1B[31m[Program exited with -1: SIGKILL]\n\x1B[39m'
+                    );
+                }
+                return rej(new ExitError(1, 'SIGKILL'));
+            } else if (Date.now() - time>16) {
+                requestAnimationFrame(nextInstruction);
+                time = Date.now();
+            }
+            else return await nextInstruction();
         }
         nextInstruction();
-    });
+    }).then((value) =>
+        !globalThis.process
+            ? (globalThis as any).awaitNextRender().then(() => value)
+            : value
+    );
 }
 
 function generateFunction(ip: number, operations: Operation[]) {
-    return (...stack: number[]) => interpret(operations, ip, stack);
+    return (...stack: number[]) =>
+        interpret(operations, ip, [...stack].reverse());
 }
 
-for (const r of run) interpret(operations, r, []);
-if ((globalThis as any).__undefieddata__.mainop !== -1)
-    // dont run when mainop is -1, as then nomain is set
-    interpret(operations, (globalThis as any).__undefieddata__.mainop, stack);
+(globalThis as any).__undefiedinterpreter__ = {
+    interpret,
+    generateFunction,
+    operations,
+};
+
+(async function () {
+    for (const r of run) await interpret(operations, r, []);
+    if ((globalThis as any).__undefieddata__.mainop !== -1)
+        // dont run when mainop is -1, as then nomain is set
+        await interpret(
+            operations,
+            (globalThis as any).__undefieddata__.mainop,
+            stack
+        );
+})();

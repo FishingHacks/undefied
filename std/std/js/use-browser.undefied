@@ -1,0 +1,14 @@
+include "./use-js"
+include "std/panic"
+include "std/io"
+include "./utils"
+
+.ifdef inBrowser undef inBrowser .end
+
+.param __run_function__
+fn inBrowser in
+    .param __supports_javascript__
+    assembly "stack.push(!!globalThis.process);" end
+    fake(bool)
+    if "Browser-only code used in a nodejs environment" panic end
+end

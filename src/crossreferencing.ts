@@ -63,7 +63,7 @@ export function crossReferenceProgram(program: Program): Program {
                     if (!_ip)
                         compilerError(
                             [op.location],
-                            'End expected `if` block, found nothing'
+                            'End expected `if`, `else`, `while`, `namespace` or `impl` block, found nothing'
                         );
                     _op = program.ops[Number(_ip)];
                     if (_op.type === OpType.SkipFn) {
@@ -86,7 +86,7 @@ export function crossReferenceProgram(program: Program): Program {
                     )
                         compilerError(
                             [_op.location],
-                            'End can only end `if`, `else`, `while` or `namespace` blocks, found `' +
+                            'End can only end `if`, `else`, `while`, `namespace` or `impl` blocks, found `' +
                                 _op.token.value +
                                 '`'
                         );

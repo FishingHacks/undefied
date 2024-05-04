@@ -289,7 +289,7 @@ export async function compile({
         else if (op.type === OpType.SkipFn) {
             if (!op.operation || isNaN(op.operation))
                 compilerError([op.location], 'Error: No end-block found!');
-            if (op.parameters?.includes('__provided_externally__'))
+            if (hasParameter(op, '__provided_externally__'))
                 ip = op.operation - 1;
             else {
                 await write('    ;; skip fn ' + op.functionName);
@@ -324,7 +324,7 @@ export async function compile({
             else await write('    call %s\n', op.functionName);
             await write('    mov [ret_stack_rsp], rsp\n');
             await write('    mov rsp, rax\n');
-            if (program.ops[op.operation].parameters?.includes('deprecated'))
+            if (hasParameter(program.ops[op.operation], 'deprecated'))
                 compilerWarn(
                     [op.location, program.ops[op.operation].location],
                     op.functionName + ' is deprecated!'
@@ -332,8 +332,8 @@ export async function compile({
         } else if (op.type === OpType.PushAsm) {
             await write('    ;; assembly\n');
             if (
-                !op.parameters?.includes('__supports_linux__') &&
-                !op.parameters?.includes('__supports_target_linux__')
+                !hasParameter(op, '__supports_linux__') &&
+                !hasParameter(op, '__supports_target_linux__')
             )
                 compilerError(
                     [op.location],

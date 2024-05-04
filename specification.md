@@ -33,8 +33,8 @@
 | Syscall4      | syscall4   | int any any any any         | int          |                                                                                                                                                        Invoke the syscall-assembly instruction with 4 values |
 | Syscall5      | syscall5   | int any any any any any     | int          |                                                                                                                                                        Invoke the syscall-assembly instruction with 5 values |
 | Syscall6      | syscall6   | int any any any any any any | int          |                                                                                                                                                        Invoke the syscall-assembly instruction with 6 values |
-| Load          | @          | ptr                         | int          |                                                                                                                                                                                           Load a 8-bit value |
-| Store         | !          | ptr int                     | _none_       |                                                                                                                                                                                          Store a 8-bit value |
+| Load          | @8         | ptr                         | int          |                                                                                                                                                                                           Load a 8-bit value |
+| Store         | !8         | ptr int                     | _none_       |                                                                                                                                                                                          Store a 8-bit value |
 | Load16        | @16        | ptr                         | int          |                                                                                                                                                                                          Load a 16-bit value |
 | Store16       | !16        | ptr int                     | _none_       |                                                                                                                                                                                         Store a 16-bit value |
 | Load32        | @32        | ptr                         | int          |                                                                                                                                                                                          Load a 32-bit value |
@@ -500,7 +500,7 @@ Info: /multiple.undefied:3:1: multiple
 
 Ends a preprocessor block
 
-## .param
+## .param, .defparam
 
 Set a parameter for a block
 
@@ -513,18 +513,37 @@ Supported Blocks:
 
 ```rb
 .param <identifier>
+.defparam <identifier> <value>
 ```
 
 **Example**
 
 ```rb
+include "std/target"
+
 .param deprecated
 fn deprecated in end
 
+.if __SUPORTS_LINUX__
 fn main -- int in
   .param __supports_linux__
   assembly "push 10" end fake(int) # Puts int 10 to exit with non-zero exitcode 10
 end
+.endif
+.ifeq __TARGET__ __TARGET_JAVASCRIPT__
+include "std/io"
+
+.param __eventlistener__
+.defparam __event__ "resize"
+.param __export__
+fn onResize int int in
+  "Resized\n" puts
+  "Width: " puts putu
+  " | Height: " puts putu "\n" puts
+end
+
+fn main in end
+.end
 ```
 
 **Available parameter**
@@ -546,7 +565,13 @@ end
 | `__nomain__`                       |                                                               Apply this to the main function. It will cause it to not run it and instead just exit. May be useful for webassembly-alike vms |
 | `__fn_anonymous__`                 |                                                               Mark an function as anonymous. This will make it not being assigned to its name. Useful in conjunction with `__run_function__` |
 | `__fn_anon__`                      |                                                               Mark an function as anonymous. This will make it not being assigned to its name. Useful in conjunction with `__run_function__` |
+| `__eventlistener__`                |                          JS & Browser Only (Does nothing on node): Add the current function as an event listener. Has to have an `__event__` parameter defined. Function has to be exported. |
+| `__event__`                        |                                                                                                                                                       Set the event to listen for (defparam) |
 | `--- Proposed ---`                 |                                                                                                                                                                           `--- Proposed ---` |
+
+### Supported Events
+
+- `resize`
 
 # Code
 

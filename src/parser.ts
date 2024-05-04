@@ -15,6 +15,7 @@ import {
     error,
     compilerWarn,
     compilerInfo,
+    warn,
 } from './errors';
 import { generateTokens, makeNumber } from './generateTokens';
 import { timer } from './timer';
@@ -28,10 +29,12 @@ import {
     Operation,
     Memory,
     EnhancedType,
+    ControlToken,
+    WordToken,
 } from './types';
 import { checkExistence } from './utils/files';
 import { valid } from './utils/general';
-import { humanTokenType } from './utils/tokens';
+import { humanTokenType, nameIsValid } from './utils/tokens';
 import { $humanType, createEnhancedType, exactMatch } from './utils/types';
 
 export async function parseProgram(
@@ -205,6 +208,7 @@ export async function parseProgram(
             'memory',
             'fn',
             'namespace',
+            'impl',
         ].includes(name);
     }
 
@@ -243,11 +247,18 @@ export async function parseProgram(
         '.if',
         '.ifn',
         '.param',
+        '.defparam',
         'namespace',
+        'impl',
     ];
 
     // what words should not reset the parameters
-    const sustainParameters: string[] = ['fn', '.param', 'assembly'];
+    const sustainParameters: string[] = [
+        'fn',
+        '.param',
+        '.defparam',
+        'assembly',
+    ];
 
     function skipPreprocessor(...toks: Token[]) {
         let $nestings = 0;
@@ -272,7 +283,8 @@ export async function parseProgram(
         }
     }
 
-    let nextParams: string[] = [];
+    let nextParams: Record<string, string> = {};
+    let currentNamespace = '';
 
     while (ip < tokens.length) {
         const token = tokens[ip];
@@ -281,14 +293,30 @@ export async function parseProgram(
             ip++;
             continue;
         }
-        if (token.type !== TokenType.Word && nextParams.length > 0)
-            nextParams = [];
+        if (token.type === TokenType.Control) {
+            if (token.args) {
+                const type = token.args.type;
+                if (type && typeof type === 'string') {
+                    if (type === 'reset_namespace') currentNamespace = '';
+                    else
+                        warn(
+                            'Warn: An internal control type with the action of %s could not get handled!',
+                            type
+                        );
+                }
+            }
+
+            ip++;
+            continue;
+        }
+        if (token.type !== TokenType.Word && Object.keys(nextParams).length > 0)
+            nextParams = {};
         if (
             token.type === TokenType.Word &&
             !sustainParameters.includes(token.value) &&
-            nextParams.length > 0
+            Object.keys(nextParams).length > 0
         )
-            nextParams = [];
+            nextParams = {};
         if (token.type === TokenType.Comment)
             program.ops.push({
                 type: OpType.Comment,
@@ -329,15 +357,11 @@ export async function parseProgram(
             });
         else if (token.type === TokenType.Word && token.value === 'memory') {
             ip++;
-            const name = tokens[ip];
-            if (!name)
-                compilerError([token.loc], 'Expected Word but got nothing');
-            if (name.type !== TokenType.Word)
-                compilerError(
-                    [token.loc],
-                    'Expected Word but got ' + humanTokenType(name.type)
-                );
-            if (isDefined(name.value))
+            const nameT = tokens[ip];
+            expectedTT(nameT?.loc || token.loc, TokenType.Word, nameT?.type);
+
+            const name = currentNamespace + nameT.value;
+            if (isDefined(name))
                 compilerError(
                     [token.loc],
                     'Redefinition of memory, function, structs, Intrinsic or Keyword is not allowed'
@@ -391,7 +415,7 @@ export async function parseProgram(
             }
             if (
                 tokens[ip].type !== TokenType.Word ||
-                tokens[ip].value !== 'end'
+                (tokens[ip] as WordToken).value !== 'end'
             )
                 compilerError(
                     [tokens[ip].loc],
@@ -515,24 +539,17 @@ export async function parseProgram(
                 );
             if (isNaN(Number(size))) assert(false, 'unreachable');
             const memory: Memory = { size: Number(size), type };
-            program.mems[name.value] = memory;
+            program.mems[name] = memory;
         } else if (token.type === TokenType.Word && token.value === 'fn') {
             isInFunction = true;
             ip++;
-            const name = tokens[ip];
-            if (!name)
-                compilerError(
-                    [token.loc],
-                    'Error: Expected Word but found nothing'
-                );
-            if (name.type !== TokenType.Word)
-                compilerError(
-                    [token.loc],
-                    'Error: Expected Word but found ' +
-                        humanTokenType(name.type)
-                );
+            const nameT = tokens[ip];
+            expectedTT(nameT?.loc || token.loc, TokenType.Word, nameT?.type);
 
-            if (isDefined(name.value))
+            if (!nameIsValid(nameT.value.toString()))
+                compilerError([nameT.loc, token.loc], 'This name is not valid');
+            const name = currentNamespace + nameT.value;
+            if (isDefined(name))
                 compilerError(
                     [token.loc],
                     'Redefinition of memory, function, constant, structs, Intrinsic or Keyword is not allowed'
@@ -636,12 +653,12 @@ export async function parseProgram(
                         [tokens[ip - 1].loc],
                         'Expected end, but found nothing'
                     );
-                macros[name.value] = toks;
+                macros[name] = toks;
             }
 
             if (!inlineNextFunction) {
                 if (
-                    nextParams.includes('__run_function__') &&
+                    nextParams.__run_function__ !== undefined &&
                     (outs.length > 0 || ins.length > 0)
                 )
                     compilerError(
@@ -649,8 +666,8 @@ export async function parseProgram(
                         'A function with __run_function__ has to have no ins and outs'
                     );
                 if (
-                    nextParams.includes('__run_function__') &&
-                    nextParams.includes('__provided_externally__')
+                    nextParams.__run_function__ !== undefined &&
+                    nextParams.__provided_externally__ !== undefined
                 )
                     compilerError(
                         [token.loc],
@@ -664,12 +681,12 @@ export async function parseProgram(
                     token,
                     operation: 0,
                     type: OpType.SkipFn,
-                    functionName: name.value.toString(),
+                    functionName: name,
                     parameters: nextParams,
                     ip: program.ops.length,
                 });
 
-            if (name.value === 'main' && !inlineNextFunction) {
+            if (name === 'main' && !inlineNextFunction) {
                 if (ins.length > 2)
                     compilerError(
                         [token.loc],
@@ -714,7 +731,7 @@ export async function parseProgram(
                     token,
                     operation: 0,
                     type: OpType.PrepFn,
-                    functionName: name.value.toString(),
+                    functionName: name,
                     parameters: nextParams,
                     ip: program.ops.length,
                 };
@@ -722,27 +739,27 @@ export async function parseProgram(
                     ins,
                     outs,
                     used:
-                        name.value === 'main' ||
-                        nextParams.includes('__run_function__') ||
-                        nextParams.includes('__export__'),
+                        name === 'main' ||
+                        nextParams.__run_function__ !== undefined ||
+                        nextParams.__export__ !== undefined,
                     prep,
                     skip: program.ops[program.ops.length - 1],
-                    name: name.value,
+                    name: name,
                     index: program.ops.length,
                 };
                 if (
-                    nextParams.includes('__run_function__') &&
+                    nextParams.__run_function__ &&
                     !program.functionsToRun.includes(program.ops.length)
                 )
                     program.functionsToRun.push(program.ops.length);
                 if (
-                    !nextParams.includes('__fn_anonymous__') &&
-                    !nextParams.includes('__fn_anon__')
+                    nextParams.__fn_anonymous__ === undefined &&
+                    nextParams.__fn_anon__ === undefined
                 )
-                    functions[name.value] = program.ops.length;
+                    functions[name] = program.ops.length;
                 program.ops.push(prep);
             }
-            nextParams = [];
+            nextParams = {};
             inlineNextFunction = false;
         } else if (token.type === TokenType.Word && token.value === 'include') {
             ip++;
@@ -849,7 +866,7 @@ export async function parseProgram(
             ) {
                 included.push(importFile);
                 if (dev) compilerInfo([token.loc], 'Including %s', importFile);
-                const generatedTokens = await generateTokens(importFile, dev);
+                const generatedTokens = await generateTokens(importFile);
                 generatedTokens.push(...tokens.slice(ip + 1));
                 tokens = generatedTokens;
                 ip = -1;
@@ -857,203 +874,197 @@ export async function parseProgram(
             lastincluded = importFile;
         } else if (token.type === TokenType.Word && token.value === 'const') {
             ip++;
-            const name = tokens[ip];
-            if (!name)
-                compilerError([token.loc], 'Expected Word but found nothing');
-            else if (name.type !== TokenType.Word)
+            const nameT = tokens[ip];
+            expectedTT(nameT?.loc || token.loc, TokenType.Word, nameT?.type);
+            if (!nameIsValid(nameT.value.toString()))
+                compilerError([nameT.loc, token.loc], 'This name is not valid');
+            const name = currentNamespace + nameT.value;
+
+            if (isDefined(name))
                 compilerError(
-                    [name.loc],
-                    'Expected Word but found ' + humanTokenType(name.type)
+                    [token.loc],
+                    'Redefinition of memory, function, constant, structs, Intrinsic or Keyword is not allowed'
                 );
-            else {
-                if (isDefined(name.value))
+            const toks: Token[] = [];
+            ip++;
+            let offset: boolean = false;
+            let reset: boolean = false;
+            while (ip < tokens.length) {
+                const tok = tokens[ip];
+                if (tok.type === TokenType.Word && tok.value === 'end') break;
+                else if (tok.type === TokenType.Integer) toks.push(tok);
+                else if (tok.type !== TokenType.Word)
                     compilerError(
-                        [token.loc],
-                        'Redefinition of memory, function, constant, structs, Intrinsic or Keyword is not allowed'
+                        [tok.loc],
+                        'Only numbers, constants, +, *, -, /, %, casting or offsetting is allowed in constants'
                     );
-                const toks: Token[] = [];
-                ip++;
-                let offset: boolean = false;
-                let reset: boolean = false;
-                while (ip < tokens.length) {
-                    const tok = tokens[ip];
-                    if (tok.type === TokenType.Word && tok.value === 'end')
-                        break;
-                    else if (tok.type === TokenType.Integer) toks.push(tok);
-                    else if (tok.type !== TokenType.Word)
+                else if (tok.value === 'offset') {
+                    if (offset || reset)
                         compilerError(
                             [tok.loc],
-                            'Only numbers, constants, +, *, -, /, %, casting or offsetting is allowed in constants'
+                            'only 1 offset or reset is allowed'
                         );
-                    else if (tok.value === 'offset') {
-                        if (offset || reset)
-                            compilerError(
-                                [tok.loc],
-                                'only 1 offset or reset is allowed'
-                            );
-                        offset = true;
-                    } else if (tok.value === 'reset') {
-                        if (offset || reset)
-                            compilerError(
-                                [tok.loc],
-                                'only 1 offset or reset is allowed'
-                            );
-                        reset = true;
-                    } else if (constants[tok.value] !== undefined)
-                        toks.push({
-                            loc: tok.loc,
-                            type: TokenType.Integer,
-                            value: constants[tok.value].value,
-                        });
-                    else if (makeNumber(tok.value) !== undefined)
-                        toks.push({
-                            type: TokenType.Integer,
-                            value: makeNumber(tok.value) || 0,
-                            loc: tok.loc,
-                        });
-                    else if (
-                        ![
-                            '+',
-                            '-',
-                            '/',
-                            '*',
-                            '%',
-                            'cast(ptr)',
-                            'cast(bool)',
-                            'cast(int)',
-                        ].includes(tok.value)
-                    )
+                    offset = true;
+                } else if (tok.value === 'reset') {
+                    if (offset || reset)
                         compilerError(
                             [tok.loc],
-                            'Only numbers, +, *, -, /, %, casting and offsetting is allowed in constants'
+                            'only 1 offset or reset is allowed'
                         );
-                    else toks.push(tok);
-                    ip++;
-                }
-                if (
-                    tokens[ip].type !== TokenType.Word ||
-                    tokens[ip].value !== 'end'
+                    reset = true;
+                } else if (constants[tok.value] !== undefined)
+                    toks.push({
+                        loc: tok.loc,
+                        type: TokenType.Integer,
+                        value: constants[tok.value].value,
+                    });
+                else if (makeNumber(tok.value) !== undefined)
+                    toks.push({
+                        type: TokenType.Integer,
+                        value: makeNumber(tok.value) || 0,
+                        loc: tok.loc,
+                    });
+                else if (
+                    ![
+                        '+',
+                        '-',
+                        '/',
+                        '*',
+                        '%',
+                        'cast(ptr)',
+                        'cast(bool)',
+                        'cast(int)',
+                    ].includes(tok.value)
                 )
                     compilerError(
-                        [tokens[ip].loc],
-                        'Expected end but found nothing'
+                        [tok.loc],
+                        'Only numbers, +, *, -, /, %, casting and offsetting is allowed in constants'
                     );
-                const simStack: number[] = [];
-                let type: Type = Type.Int;
-                for (const t of toks) {
-                    if (t.type === TokenType.Integer) simStack.push(t.value);
-                    else if (t.type === TokenType.Word) {
-                        switch (t.value) {
-                            case '+':
-                                if (simStack.length < 2)
-                                    compilerError(
-                                        [t.loc],
-                                        'Simulationstack does not contain enough values for this operation'
-                                    );
-                                {
-                                    const [v2, v1] = [
-                                        simStack.pop(),
-                                        simStack.pop(),
-                                    ];
-                                    simStack.push((v1 || 0) + (v2 || 0));
-                                }
-                                break;
-                            case '-':
-                                if (simStack.length < 2)
-                                    compilerError(
-                                        [t.loc],
-                                        'Simulationstack does not contain enough values for this operation'
-                                    );
-                                else {
-                                    const [v2, v1] = [
-                                        simStack.pop(),
-                                        simStack.pop(),
-                                    ];
-                                    simStack.push((v1 || 0) - (v2 || 0));
-                                }
-                                break;
-                            case '*':
-                                if (simStack.length < 2)
-                                    compilerError(
-                                        [t.loc],
-                                        'Simulationstack does not contain enough values for this operation'
-                                    );
-                                {
-                                    const [v2, v1] = [
-                                        simStack.pop(),
-                                        simStack.pop(),
-                                    ];
-                                    simStack.push((v1 || 0) * (v2 || 0));
-                                }
-                                break;
-                            case '/':
-                                if (simStack.length < 2)
-                                    compilerError(
-                                        [t.loc],
-                                        'Simulationstack does not contain enough values for this operation'
-                                    );
-                                {
-                                    const [v2, v1] = [
-                                        simStack.pop(),
-                                        simStack.pop(),
-                                    ];
-                                    simStack.push((v1 || 0) / (v2 || 0));
-                                }
-                                break;
-                            case '%':
-                                if (simStack.length < 2)
-                                    compilerError(
-                                        [t.loc],
-                                        'Simulationstack does not contain enough values for this operation'
-                                    );
-                                {
-                                    const [v2, v1] = [
-                                        simStack.pop(),
-                                        simStack.pop(),
-                                    ];
-                                    simStack.push((v1 || 0) % (v2 || 0));
-                                }
-                                break;
-                            case 'cast(ptr)':
-                                type = Type.Ptr;
-                                break;
-                            case 'cast(bool)':
-                                type = Type.Bool;
-                                break;
-                            case 'cast(int)':
-                                type = Type.Int;
-                                break;
-                            default:
-                                assert(false, 'unreachable');
-                        }
-                    } else assert(false, 'unreachable');
-                }
+                else toks.push(tok);
+                ip++;
+            }
+            if (
+                tokens[ip].type !== TokenType.Word ||
+                tokens[ip].value !== 'end'
+            )
+                compilerError(
+                    [tokens[ip].loc],
+                    'Expected end but found nothing'
+                );
+            const simStack: number[] = [];
+            let type: Type = Type.Int;
+            for (const t of toks) {
+                if (t.type === TokenType.Integer) simStack.push(t.value);
+                else if (t.type === TokenType.Word) {
+                    switch (t.value) {
+                        case '+':
+                            if (simStack.length < 2)
+                                compilerError(
+                                    [t.loc],
+                                    'Simulationstack does not contain enough values for this operation'
+                                );
+                            {
+                                const [v2, v1] = [
+                                    simStack.pop(),
+                                    simStack.pop(),
+                                ];
+                                simStack.push((v1 || 0) + (v2 || 0));
+                            }
+                            break;
+                        case '-':
+                            if (simStack.length < 2)
+                                compilerError(
+                                    [t.loc],
+                                    'Simulationstack does not contain enough values for this operation'
+                                );
+                            else {
+                                const [v2, v1] = [
+                                    simStack.pop(),
+                                    simStack.pop(),
+                                ];
+                                simStack.push((v1 || 0) - (v2 || 0));
+                            }
+                            break;
+                        case '*':
+                            if (simStack.length < 2)
+                                compilerError(
+                                    [t.loc],
+                                    'Simulationstack does not contain enough values for this operation'
+                                );
+                            {
+                                const [v2, v1] = [
+                                    simStack.pop(),
+                                    simStack.pop(),
+                                ];
+                                simStack.push((v1 || 0) * (v2 || 0));
+                            }
+                            break;
+                        case '/':
+                            if (simStack.length < 2)
+                                compilerError(
+                                    [t.loc],
+                                    'Simulationstack does not contain enough values for this operation'
+                                );
+                            {
+                                const [v2, v1] = [
+                                    simStack.pop(),
+                                    simStack.pop(),
+                                ];
+                                simStack.push((v1 || 0) / (v2 || 0));
+                            }
+                            break;
+                        case '%':
+                            if (simStack.length < 2)
+                                compilerError(
+                                    [t.loc],
+                                    'Simulationstack does not contain enough values for this operation'
+                                );
+                            {
+                                const [v2, v1] = [
+                                    simStack.pop(),
+                                    simStack.pop(),
+                                ];
+                                simStack.push((v1 || 0) % (v2 || 0));
+                            }
+                            break;
+                        case 'cast(ptr)':
+                            type = Type.Ptr;
+                            break;
+                        case 'cast(bool)':
+                            type = Type.Bool;
+                            break;
+                        case 'cast(int)':
+                            type = Type.Int;
+                            break;
+                        default:
+                            assert(false, 'unreachable');
+                    }
+                } else assert(false, 'unreachable');
+            }
 
-                if (simStack.length !== 1 && !reset)
-                    compilerError(
-                        [token.loc],
-                        'Error: No or too many elements on the Simulation stack'
-                    );
-                else {
-                    if ((offset || reset) && type !== Type.Int)
-                        compilerError(
-                            [token.loc],
-                            'Only integers can be offset'
-                        );
-                    if (type === Type.Bool)
-                        simStack[0] = simStack[0] === 0 ? 0 : 1;
-                    if (offset || reset) {
-                        constants[name.value] = { type, value: offsetValue };
-                        offsetValue = offset ? offsetValue + simStack[0] : 0;
-                    } else constants[name.value] = { type, value: simStack[0] };
-                }
+            if (simStack.length !== 1 && !reset)
+                compilerError(
+                    [token.loc],
+                    'Error: No or too many elements on the Simulation stack'
+                );
+            else {
+                if ((offset || reset) && type !== Type.Int)
+                    compilerError([token.loc], 'Only integers can be offset');
+                if (type === Type.Bool) simStack[0] = simStack[0] === 0 ? 0 : 1;
+                if (offset || reset) {
+                    constants[name] = { type, value: offsetValue };
+                    offsetValue = offset ? offsetValue + simStack[0] : 0;
+                } else constants[name] = { type, value: simStack[0] };
             }
         } else if (token.type === TokenType.Word && token.value === 'struct') {
             ip++;
-            const name = tokens[ip];
-            if (name?.type !== TokenType.Word)
-                expectedTT(token.loc, TokenType.Word, name?.type);
-            if (isDefined(name.value))
+            const nameT = tokens[ip];
+            expectedTT(token.loc, TokenType.Word, nameT?.type);
+            const name = nameT.value;
+            if (!nameIsValid(name.toString()))
+                compilerError([nameT.loc, token.loc], 'This name is not valid');
+
+            if (isDefined(name))
                 compilerError(
                     [token.loc],
                     'Redefinition of memory, function, constant, structs, Intrinsic or Keyword is not allowed'
@@ -1064,7 +1075,7 @@ export async function parseProgram(
                 tokens[ip]?.value !== 'in'
             )
                 doesntmatchTT(
-                    tokens[ip]?.loc || name.loc,
+                    tokens[ip]?.loc || nameT.loc,
                     TokenType.Word,
                     tokens[ip]?.type || TokenType.None,
                     'in',
@@ -1118,18 +1129,18 @@ export async function parseProgram(
 
             let offset: number = 0;
             for (const v of values) {
-                if (constants[name.value + '.' + v.name] !== undefined)
+                if (constants[name + '.' + v.name] !== undefined)
                     compilerWarn(
                         [token.loc],
                         'You have already constants for the length and/or offset of parts of this Struct'
                     );
                 else
-                    constants[name.value + '.' + v.name] = {
+                    constants[name + '.' + v.name] = {
                         type: Type.Ptr,
                         value: offset,
                     };
                 if (
-                    constants['sizeof' + name.value + '.' + v.name + ')'] !==
+                    constants['sizeof' + name + '.' + v.name + ')'] !==
                     undefined
                 )
                     compilerWarn(
@@ -1137,24 +1148,24 @@ export async function parseProgram(
                         'You have already constants for the length and/or offset of parts of this Struct'
                     );
                 else
-                    constants['sizeof(' + name.value + '.' + v.name + ')'] = {
+                    constants['sizeof(' + name + '.' + v.name + ')'] = {
                         type: Type.Int,
                         value: v.type.length,
                     };
                 offset += v.type.length;
             }
-            if (constants['sizeof(' + name.value + ')'] !== undefined)
+            if (constants['sizeof(' + name + ')'] !== undefined)
                 compilerWarn(
                     [token.loc],
                     'You have already constants for the size of this struct'
                 );
             else
-                constants['sizeof(' + name.value + ')'] = {
+                constants['sizeof(' + name + ')'] = {
                     type: Type.Int,
                     value: offset,
                 };
 
-            structs[name.value] = values;
+            structs[name] = values;
             function comment(str: string) {
                 program.ops.push({
                     type: OpType.Comment,
@@ -1164,7 +1175,7 @@ export async function parseProgram(
                     ip: program.ops.length,
                 });
             }
-            comment(' struct ' + name.value + ' {');
+            comment(' struct ' + name + ' {');
             for (const { name, type } of values)
                 comment(
                     '     ' +
@@ -1231,7 +1242,7 @@ export async function parseProgram(
                     parameters: nextParams,
                     ip: program.ops.length,
                 });
-            nextParams = [];
+            nextParams = {};
         } else if (token.type === TokenType.Word && token.value === 'inline') {
             if (!check) inlineNextFunction = true;
             if (tokens[ip + 1] === undefined)
@@ -1421,18 +1432,61 @@ export async function parseProgram(
                 TokenType.Word,
                 paramname?.type
             );
-            nextParams.push(paramname.value.toString());
+            nextParams[paramname.value.toString()] = '';
         } else if (
             token.type === TokenType.Word &&
-            token.value === 'namespace'
+            token.value === '.defparam'
+        ) {
+            const paramname = tokens[++ip];
+            const paramvalue = tokens[++ip];
+            expectedTT(
+                paramname?.loc || token.loc,
+                TokenType.Word,
+                paramname?.type
+            );
+            expectedTT(
+                paramvalue?.loc || token.loc,
+                TokenType.String,
+                paramvalue?.type
+            );
+            nextParams[paramname.value.toString()] =
+                paramvalue.value.toString();
+        } else if (
+            token.type === TokenType.Word &&
+            (token.value === 'namespace' || token.value === 'impl')
         ) {
             nestings++;
             const name = tokens[++ip];
             expectedTT(name?.loc || token.loc, TokenType.Word, name?.type);
+            if (!nameIsValid(name.value.toString()))
+                compilerError([name.loc, token.loc], 'This name is not valid');
+
+            const traits: string[] = [];
+
+            while (true) {
+                const tok = tokens[++ip];
+
+                if (!tok) break;
+                else if (tok.type !== TokenType.Word)
+                    compilerError(
+                        [tok.loc, token.loc],
+                        'Expected Word, but found ' + humanTokenType(tok.type)
+                    );
+                else if (tok.value === 'in') break;
+                else traits.push(tok.value);
+            }
+
+            doesntmatchTT(
+                tokens[ip]?.loc || tokens[ip - 1]?.loc || token.loc,
+                TokenType.Word,
+                tokens[ip]?.type,
+                'in',
+                tokens[ip]?.value
+            );
+
             const oldip = ip;
 
             let $nestings = 0;
-            let nextFn = false;
             while (ip < tokens.length) {
                 const tok = tokens[++ip];
                 if (!tok) break;
@@ -1443,16 +1497,6 @@ export async function parseProgram(
                     $nestings++;
                 else if (tok.type === TokenType.Word && tok.value === 'end')
                     $nestings--;
-                if (
-                    tok.type === TokenType.Word &&
-                    (tok.value === 'fn' || tok.value === 'const')
-                )
-                    nextFn = true;
-                else {
-                    if (nextFn && tok.type === TokenType.Word)
-                        tok.value = name.value + '::' + tok.value;
-                    nextFn = false;
-                }
                 if ($nestings < 0) break;
             }
             const end = tokens[ip];
@@ -1463,19 +1507,29 @@ export async function parseProgram(
                 'end',
                 end?.value
             );
-            end.type = TokenType.None;
+            end.type = TokenType.Control;
+            (end as ControlToken).args = {
+                type: 'reset_namespace',
+            };
+
+            currentNamespace = name.value.toString() + '::';
 
             ip = oldip;
         } else {
+            const name = token.value;
+            const namespacedName =
+                token.value.startsWith(':') && !token.value.startsWith('::')
+                    ? currentNamespace + token.value.substring(1)
+                    : token.value;
+
             if (
-                IntrinsicNames[token.value as keyof typeof IntrinsicNames] ===
+                IntrinsicNames[name as keyof typeof IntrinsicNames] ===
                     undefined &&
-                KeywordNames[token.value as keyof typeof KeywordNames] ===
-                    undefined &&
-                program.mems[token.value] === undefined &&
-                functions[token.value] === undefined &&
-                constants[token.value] === undefined &&
-                macros[token.value] === undefined &&
+                KeywordNames[name as keyof typeof KeywordNames] === undefined &&
+                program.mems[namespacedName] === undefined &&
+                functions[namespacedName] === undefined &&
+                constants[namespacedName] === undefined &&
+                macros[namespacedName] === undefined &&
                 token.type === TokenType.Word
             ) {
                 compilerError(
@@ -1485,70 +1539,66 @@ export async function parseProgram(
                         '" is not an Intrinsic, Keyword, function or memory name'
                 );
             } else if (
-                IntrinsicNames[token.value as keyof typeof IntrinsicNames] !==
+                IntrinsicNames[name as keyof typeof IntrinsicNames] !==
                 undefined
             )
                 program.ops.push({
                     location: token.loc,
                     token,
                     operation:
-                        IntrinsicNames[
-                            token.value as keyof typeof IntrinsicNames
-                        ],
+                        IntrinsicNames[name as keyof typeof IntrinsicNames],
                     type: OpType.Intrinsic,
                     ip: program.ops.length,
                 });
             else if (
-                KeywordNames[token.value as keyof typeof KeywordNames] !==
-                undefined
+                KeywordNames[name as keyof typeof KeywordNames] !== undefined
             ) {
-                if (token.value === 'end' && nestings < 1) isInFunction = false;
-                else if (token.value === 'end') nestings--;
-                else if (isBlockKeyword(token.value.toString())) nestings++;
+                if (name === 'end' && nestings < 1) isInFunction = false;
+                else if (name === 'end') nestings--;
+                else if (isBlockKeyword(name)) nestings++;
                 program.ops.push({
                     location: token.loc,
                     token,
-                    operation:
-                        KeywordNames[token.value as keyof typeof KeywordNames],
+                    operation: KeywordNames[name as keyof typeof KeywordNames],
                     type: OpType.Keyword,
                     ip: program.ops.length,
                 });
-            } else if (program.mems[token.value] !== undefined)
+            } else if (program.mems[namespacedName] !== undefined)
                 program.ops.push({
                     location: token.loc,
                     token,
                     type: OpType.PushMem,
-                    operation: token.value,
+                    operation: namespacedName,
                     ip: program.ops.length,
                 });
-            else if (functions[token.value] !== undefined)
+            else if (functions[namespacedName] !== undefined)
                 program.ops.push({
                     location: token.loc,
                     token,
                     type: OpType.Call,
-                    operation: functions[token.value],
+                    operation: functions[namespacedName],
                     functionName: token.value,
                     ip: program.ops.length,
                 });
-            else if (constants[token.value] !== undefined)
+            else if (constants[namespacedName] !== undefined)
                 program.ops.push({
-                    _type: constants[token.value].type,
-                    operation: constants[token.value].value,
+                    _type: constants[namespacedName].type,
+                    operation: constants[namespacedName].value,
                     location: token.loc,
                     token,
                     type: OpType.Const,
                     ip: program.ops.length,
                 });
-            else if (macros[token.value] !== undefined) {
+            else if (macros[namespacedName] !== undefined) {
                 program.ops.push({
                     type: OpType.Comment,
-                    operation: ' InlineCall (' + token.value + ')',
+                    operation: ' InlineCall (' + name + ')',
                     location: token.loc,
                     token,
                     ip: program.ops.length,
                 });
                 tokens = [
-                    ...macros[token.value],
+                    ...macros[namespacedName],
                     {
                         type: TokenType.Comment,
                         loc: token.loc,

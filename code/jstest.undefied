@@ -7,6 +7,7 @@ include "binaryparser"
 include "hexparser"
 include "std/js/utils"
 include "std/js/syscalls"
+include "std/js/canvas"
 
 inline fn helloWorld in
     "Hello, World!\n" puts
@@ -90,4 +91,58 @@ fn mainc in
 end
 
 .param __export__
-fn main in 0 SC_exit end
+.param __eventlistener__
+.defparam __event__ "resize"
+fn onresize int int in
+# print print
+"ResizeEvent:\n" puts
+"Width: " puts putu
+" | Height: " puts putu "\n" puts
+end
+
+.param __export__
+fn maine in
+    "Running in: " puts getCurrentRunner puts "\n" puts
+    style_bold
+    "Please switch to the canvas tab. Thanks :3\n" puts
+    bold_RESET
+    awaitNextRender
+end
+
+const WIDTH 300 end
+const HEIGHT 30 end
+memory canvas WIDTH HEIGHT * end
+
+.param __export__
+fn maind in
+    WIDTH HEIGHT Canvas::Initialize
+
+    0 1 while
+        drop
+        dup HEIGHT < if
+        
+            0 1 while
+                drop
+                dup WIDTH < if
+                    # h w+h*HEIGHT
+                    over HEIGHT *
+                    over +
+                    canvas +ptr
+                    1 random cast(bool) if 0xffff00ff else 0xff00ffff end
+                    swap !64
+                    1 + 1
+                else 0 end
+            end
+            drop drop
+        1 + 1
+        else 0 end 
+    end
+    drop drop
+
+    WIDTH HEIGHT canvas Canvas::PutData
+end
+
+.param __export__
+fn main in
+maind
+end

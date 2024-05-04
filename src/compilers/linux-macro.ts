@@ -141,11 +141,11 @@ export async function compile({
             await write('\n');
             await write(';;   -> Ins: ');
             if (ins.length < 1) await write('none');
-            else await write(ins.map(el => humanType(el.type)).join(', '));
+            else await write(ins.map((el) => humanType(el.type)).join(', '));
             await write('\n');
             await write(';;   -> Outs: ');
             if (outs.length < 1) await write('none');
-            else await write(outs.map(el => humanType(el.type)).join(', '));
+            else await write(outs.map((el) => humanType(el.type)).join(', '));
             await write('\n\n');
         }
         functionMetadataGenEnd();
@@ -284,7 +284,7 @@ export async function compile({
         else if (op.type === OpType.SkipFn) {
             if (!op.operation || isNaN(op.operation))
                 compilerError([op.location], 'Error: No end-block found!');
-            if (op.parameters?.includes('__provided_externally__'))
+            if (hasParameter(op, '__provided_externally__'))
                 ip = op.operation - 1;
             else
                 await useMacro(
@@ -297,9 +297,13 @@ export async function compile({
                 await write(`${op.functionName}_${getId(op.functionName)}:\n`);
             await write(
                 '     ;; ' +
-                    program.contracts[ip].ins.map(el => humanType(el.type)).join(' ') +
+                    program.contracts[ip].ins
+                        .map((el) => humanType(el.type))
+                        .join(' ') +
                     ' -- ' +
-                    program.contracts[ip].outs.map(el => humanType(el.type)).join(' ') +
+                    program.contracts[ip].outs
+                        .map((el) => humanType(el.type))
+                        .join(' ') +
                     '\n'
             );
             await useMacro('prepfn', op.functionName);
@@ -320,15 +324,15 @@ export async function compile({
                     op.operation.toString() + ' ;; ' + op.functionName
                 );
             else await useMacro('callFn', op.functionName);
-            if (program.ops[op.operation].parameters?.includes('deprecated'))
+            if (hasParameter(program.ops[op.operation], 'deprecated'))
                 compilerWarn(
                     [op.location, program.ops[op.operation].location],
                     op.functionName + ' is deprecated!'
                 );
         } else if (op.type === OpType.PushAsm) {
             if (
-                !op.parameters?.includes('__supports_linux__') &&
-                !op.parameters?.includes('__supports_target_linux_macros__')
+                !hasParameter(op, '__supports_linux__') &&
+                !hasParameter(op, '__supports_target_linux_macros__')
             )
                 compilerError(
                     [op.location],

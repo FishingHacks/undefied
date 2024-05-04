@@ -19,7 +19,7 @@ struct CStr in
   pointer ptr
 end
 
-namespace CStr
+namespace CStr in
   inline fn null -- ptr in nullptr end
 
   fn len ptr -- int in
@@ -52,7 +52,7 @@ namespace CStr
   end
 end
 
-namespace Str
+namespace Str in
 
   .ifeq __TARGET__ __TARGET_JAVASCRIPT__
     .ifdef Str::toJSString undef Str::toJSString .end
@@ -69,8 +69,8 @@ namespace Str
   memory tmp_strlen_streq sizeof(u64) end
 
   fn eq ptr int ptr int -- bool in
-    swap tmp_strlen_streq !64 rot rot tmp_strlen_streq @64 != if drop drop false return end
-    tmp_strlen_streq @64
+    swap :tmp_strlen_streq !64 rot rot :tmp_strlen_streq @64 != if drop drop false return end
+    :tmp_strlen_streq @64
 
     while
       rot
@@ -97,9 +97,9 @@ end
   .ifdef CStr::toJSString undef CStr::toJSString .end
   .ifdef CStr::fromJSString undef CStr::fromJSString .end
 
-  inline fn CStr::toJSString ptr -- ptr in
+  inline fn toJSString ptr -- ptr in
     CStr::toStr Str::toJSString
   end
   .param __provided_externally__
-  fn CStr::fromJSString ptr -- ptr in end
+  fn fromJSString ptr -- ptr in end
 .end

@@ -703,7 +703,7 @@ function $typecheckProgram(
     return { stack, functionBodies };
 }
 
-export function typecheckProgram(program: Program, dev: boolean) {
+export function typecheckProgram(program: Program) {
     const end = timer.start('typecheckProgram()');
 
     const { stack, functionBodies } = $typecheckProgram(program, []);

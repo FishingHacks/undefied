@@ -1,0 +1,11 @@
+include "./use-browser"
+
+namespace Canvas in
+
+    .param __provided_externally__
+    fn Initialize int int in end
+
+    .param __provided_externally__
+    fn PutData ptr int int in end
+
+end

@@ -6,3 +6,7 @@ fn awaitNextRender in end
 fn sleep int in end
 .param __provided_externally__
 fn random int -- int in end
+
+fn isNode -- bool in .param __supports_javascript__ assembly "stack.push(!!globalThis.process)" end fake(bool) end
+fn isBrowser -- bool in .param __supports_javascript__ assembly "stack.push(!globalThis.process)" end fake(bool) end
+fn getCurrentRunner -- ptr int in isNode if "Node" else "Browser" end end

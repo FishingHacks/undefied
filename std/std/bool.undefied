@@ -84,7 +84,7 @@ end
 inline fn @bool ptr -- bool in @64 cast(bool) end
 inline fn !bool bool ptr in cast(int) swap !64 end
 
-namespace Boolean
+namespace Boolean in
     inline fn toString bool -- ptr int in if "true" else "false" end end
     inline fn print bool in Boolean::toString puts end
     inline fn load ptr -- bool in @64 cast(bool) end

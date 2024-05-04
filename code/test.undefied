@@ -65,12 +65,19 @@ fn maina in
   "ff" parseHexVal print
   "ffff" parseHexVal print
 
-  "aaa" "aaa" Str::eq printb
+  "aaa" "aaa" Str::eq Boolean::print
   "\n" puts
-  "12345678" 2 substr puts
+  "12345678" 2 Str::substr puts
 end
 
 fn mainb in end
 
+fn +any any any -- int in
+    fake(drop)
+    fake(drop)
+    fake(int)
+    fake(int)
+    +
+end
 
-fn main in maina end
+fn main in 1 2 cast(ptr) +any print end

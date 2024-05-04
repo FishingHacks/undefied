@@ -557,6 +557,79 @@
         };
     }
 
+    function generateTabs() {
+        const tabs = document.createElement('div');
+        tabs.style.width = '100vw';
+        tabs.style.overflow = 'hidden';
+        tabs.style.height = '2rem';
+        tabs.style.display = 'flex';
+        tabs.style.flexWrap = 'nowrap';
+        tabs.style.flexDirection = 'row';
+        tabs.style.backgroundColor = '#171717';
+
+        const consoleTab = document.createElement('div');
+        const canvasTab = document.createElement('div');
+
+        consoleTab.style.width = '50vw';
+        consoleTab.style.textAlign = 'center';
+        consoleTab.style.backgroundColor = '#171717';
+        consoleTab.style.color = 'darkgray';
+        consoleTab.style.fontWeight = '900';
+        consoleTab.style.fontSize = '1.5rem';
+        consoleTab.style.fontFamily = 'sans-serif';
+        consoleTab.style.height = '2rem';
+        consoleTab.style.cursor = 'pointer';
+        consoleTab.style.userSelect = 'none';
+        consoleTab.style.borderBottom = '#171717 3px solid';
+        consoleTab.style.boxSizing = 'border-box';
+        consoleTab.style.transition = 'border-bottom .25s ease';
+        consoleTab.textContent = 'Console';
+        tabs.append(consoleTab);
+
+        canvasTab.style.width = '50vw';
+        canvasTab.style.textAlign = 'center';
+        canvasTab.style.backgroundColor = '#171717';
+        canvasTab.style.color = 'darkgray';
+        canvasTab.style.fontWeight = '900';
+        canvasTab.style.fontSize = '1.5rem';
+        canvasTab.style.fontFamily = 'sans-serif';
+        canvasTab.style.height = '2rem';
+        canvasTab.style.cursor = 'pointer';
+        canvasTab.style.userSelect = 'none';
+        canvasTab.style.borderBottom = '#171717 3px solid';
+        canvasTab.style.boxSizing = 'border-box';
+        canvasTab.style.transition = 'border .25s ease';
+        canvasTab.textContent = 'Canvas';
+        tabs.append(canvasTab);
+
+        function change(selected) {
+            if (selected === 'console') {
+                consoleTab.style.borderBottom = 'yellow 3px solid';
+                canvasTab.style.borderBottom = '#171717 3px solid';
+                [...document.getElementsByClassName('console')].forEach(
+                    (el) => (el.style.display = 'block')
+                );
+                [...document.getElementsByClassName('canvas')].forEach(
+                    (el) => (el.style.display = 'none')
+                );
+            } else {
+                canvasTab.style.borderBottom = 'yellow 3px solid';
+                consoleTab.style.borderBottom = '#171717 3px solid';
+                [...document.getElementsByClassName('console')].forEach(
+                    (el) => (el.style.display = 'none')
+                );
+                [...document.getElementsByClassName('canvas')].forEach(
+                    (el) => (el.style.display = 'block')
+                );
+            }
+        }
+
+        canvasTab.addEventListener('click', () => change('canvas'));
+        consoleTab.addEventListener('click', () => change('console'));
+        change('console');
+        return tabs;
+    }
+
     document.body.style.margin = '0px';
     document.body.style.padding = '0px';
     document.body.style.overflowX = 'hidden';
@@ -588,6 +661,37 @@
         element.append(...elements);
     }
 
+    const canvas = document.createElement('canvas');
+    globalThis.canvas = canvas;
+    canvas.style.width = '100vw';
+    canvas.style.height = window.logToConsole ? '100vh' : 'calc(100vh - 2rem)';
+    canvas.classList.add('canvas');
+    canvas.style.backgroundColor = '#222';
+
+    document.body.append(canvas);
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    let unused = document.createElement('p');
+    unused.style.color = 'orange';
+    unused.style.fontWeight = 'bold';
+    unused.textContent = 'Warn: Canvas is unused';
+    unused.classList.add('canvas-unused', 'canvas');
+    unused.style.position = 'absolute';
+    unused.style.top = '50%';
+    unused.style.left = '50%';
+    unused.style.transform = 'translate(-50%, -50%)';
+    unused.style.margin = '0px';
+    unused.style.padding = '0px';
+
+    document.body.append(unused);
+
+    const oldCanvasGetCtx = canvas.getContext;
+    canvas.getContext = function getContext(...args) {
+        unused?.remove();
+        unused = undefined;
+        return oldCanvasGetCtx.apply(canvas, args);
+    }
+
     let element = document.getElementsByClassName('console')[0];
     if (!element && !window.logToConsole) {
         element = document.createElement('pre');
@@ -596,7 +700,7 @@
         element.style.padding = '.5rem';
         element.style.color = 'darkgray';
         element.style.width = 'calc(100vw - 1rem)';
-        element.style.height = 'calc(100vh - 1rem)';
+        element.style.height = 'calc(100vh - 3rem)';
         element.style.margin = '0px';
         element.style.overflowX = 'hidden';
         element.style.overflowY = 'scroll';
@@ -605,6 +709,8 @@
         generateFancyness(element);
         document.body.append(element);
     }
+    if (!window.logToConsole)
+        document.body.insertBefore(generateTabs(), canvas);
     let styles = {
         fg: 'darkgray',
         bg: '#171717',

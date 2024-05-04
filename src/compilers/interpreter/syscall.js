@@ -6,5 +6,5 @@
     }
 
     const arr = [SC_exit];
-    for (const el of arr) window[el.name] = el;
+    for (const el of arr) globalThis[el.name] = el;
 })();

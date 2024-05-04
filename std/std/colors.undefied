@@ -12,10 +12,16 @@ fn color_bg_RGB int int int in "[48;2;" puts putu ";" puts putu ";" puts putu "
 inline fn color_RESET in "[39m" puts end
 inline fn bg_RESET in "[49m" puts end
 
+inline fn allColors_RESET in color_RESET bg_RESET end
+
 inline fn bold_RESET in "[22m" puts end
 inline fn italic_RESET in "[23m" puts end
 inline fn strikethrough_RESET in "[29m" puts end
 inline fn underline_RESET in "[24m" puts end
+
+inline fn style_RESET in bold_RESET italic_RESET strikethrough_RESET underline_RESET end
+
+inline fn all_RESET in style_RESET allColors_RESET end
 
 inline fn black in "[30m" puts end
 inline fn blue in "[34m" puts end

@@ -90,6 +90,8 @@ export function doesntmatchTT(
 }
 export function error(err: string, ...values: any[]): never {
     console.error(chalk.redBright('Error: ' + format(err, ...values)));
+    const stack = new Error('Exit').stack;
+    if (stack) console.log(chalk.redBright('Stacktrace:\n' + stack));
     console.log('\n' + INFO.name + ' v' + INFO.version);
     process.exit(1);
 }
